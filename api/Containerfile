@@ -1,4 +1,4 @@
-FROM openjdk:23-alpine
+FROM openjdk:23-jdk-alpine
 w
 # Copy the specific JAR file into the container
 COPY build/libs/api-0.0.1.jar /app
