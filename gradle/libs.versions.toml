@@ -1,0 +1,24 @@
+[versions]
+springboot = "3.4.3"
+
+[libraries]
+springboot-starter-web = { module = "org.springframework.boot:spring-boot-starter-web", version.ref = "springboot" }
+springboot-starter-undertow = { module = "org.springframework.boot:spring-boot-starter-undertow", version.ref = "springboot" }
+springboot-starter-mongodb = { module = "org.springframework.boot:spring-boot-starter-data-mongodb", version.ref = "springboot" }
+springboot-starter-validation = { module = "org.springframework.boot:spring-boot-starter-validation", version.ref = "springboot" }
+springboot-starter-security = { module = "org.springframework.boot:spring-boot-starter-security", version.ref = "springboot" }
+springboot-starter-webflux = { module = "org.springframework.boot:spring-boot-starter-webflux", version.ref = "springboot" }
+springboot-starter-outh-server = { module = "org.springframework.boot:spring-boot-starter-oauth2-resource-server", version.ref = "springboot" }
+springboot-starter-outh-client = { module = "org.springframework.boot:spring-boot-starter-oauth2-client", version.ref = "springboot" }
+jwt-api = { module = "io.jsonwebtoken:jjwt-api", version = "0.11.5" }
+jwt-impl = { module = "io.jsonwebtoken:jjwt-impl", version = "0.11.5" }
+jwt-jackson = { module = "io.jsonwebtoken:jjwt-jackson", version = "0.11.5" }
+lombok = { module = "org.projectlombok:lombok", version = "1.18.30" }
+
+[bundles]
+
+
+[plugins]
+spring-boot = { id = "org.springframework.boot", version.ref = "springboot" }
+spring-dependency-management = { id = "io.spring.dependency-management", version = "1.1.4" }
+versions = { id = "com.github.ben-manes.versions", version = "0.52.0" }

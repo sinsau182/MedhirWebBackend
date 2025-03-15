@@ -1,0 +1,15 @@
+FROM openjdk:23-alpine
+w
+# Copy the specific JAR file into the container
+COPY build/libs/api-0.0.1.jar /app
+
+# Set the working directory inside the container
+WORKDIR /app
+
+ENV JAVA_OPTS="-Xmx512m"
+
+# Expose the application port (default for Spring Boot)
+EXPOSE 8083
+
+# Command to run the application and disable SSL
+CMD ["java", "-jar", "api-0.0.1.jar]
