@@ -12,4 +12,4 @@ ENV JAVA_OPTS="-Xmx512m"
 EXPOSE 8083
 
 # Command to run the application and disable SSL
-CMD ["java", "-jar", "api-0.0.1.jar]
+CMD ["java", "-jar", "api-0.0.1.jar"]
