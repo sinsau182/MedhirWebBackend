@@ -4,6 +4,7 @@ import com.medhir.rest.model.Role;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
 import io.jsonwebtoken.security.Keys;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 import java.security.Key;
@@ -14,11 +15,14 @@ import java.util.stream.Collectors;
 
 @Component
 public class JwtUtil {
-    private static final String SECRET_KEY = "supersecretkeyforjwtgeneration123456"; // Keep same key in both files
-    private static final long EXPIRATION_TIME = 86400000; // 1 day
+    @Value("${jwt.secret}")
+    private String secretKey;
+
+    @Value("${jwt.expiration}")
+    private long expirationTime;
 
     private Key getSigningKey() {
-        return Keys.hmacShaKeyFor(SECRET_KEY.getBytes());
+        return Keys.hmacShaKeyFor(secretKey.getBytes());
     }
 
     public String generateToken(String email, Set<Role> roles) {
@@ -26,7 +30,7 @@ public class JwtUtil {
                 .setSubject(email)
                 .claim("roles", roles.stream().map(Enum::name).collect(Collectors.toList())) // Convert enum to String
                 .setIssuedAt(new Date())
-                .setExpiration(new Date(System.currentTimeMillis() + EXPIRATION_TIME))
+                .setExpiration(new Date(System.currentTimeMillis() + expirationTime))
                 .signWith(getSigningKey(), SignatureAlgorithm.HS256)
                 .compact();
     }

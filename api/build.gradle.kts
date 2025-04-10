@@ -7,10 +7,15 @@ plugins {
 group = "com.medhir"
 version = "0.0.1"
 
+//java {
+//    toolchain {
+//        languageVersion = JavaLanguageVersion.of(23)
+//    }
+//}
+
 java {
-    toolchain {
-        languageVersion = JavaLanguageVersion.of(23)
-    }
+    sourceCompatibility = JavaVersion.VERSION_21
+    targetCompatibility = JavaVersion.VERSION_21
 }
 
 repositories {

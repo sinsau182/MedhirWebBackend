@@ -35,7 +35,7 @@ public class SecurityConfig {
         http.cors(c -> c.configurationSource(corsConfigurationSource()))
                 .csrf(csrf -> csrf.disable())
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-                .authorizeHttpRequests(auth -> auth.requestMatchers("/auth/**")
+                .authorizeHttpRequests(auth -> auth.requestMatchers("/auth/**","/employee/id/*","/employee/update-request","/payslip/generate/**")
                         .permitAll()
                         .requestMatchers("/hradmin/**")
                         .hasAuthority("ROLE_HRADMIN")
@@ -47,7 +47,7 @@ public class SecurityConfig {
                         exception -> exception
                                 .authenticationEntryPoint(authenticationEntryPoint()) // Handle 401
                                 .accessDeniedHandler(accessDeniedHandler()) // Handle 403
-                        )
+                )
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
@@ -57,7 +57,7 @@ public class SecurityConfig {
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration config = new CorsConfiguration();
         config.setAllowedOrigins(
-                List.of("http://localhost:3000", "http://192.168.0.200:3000", "*.medhir.in")); // Allow frontend
+                List.of("http://localhost:3000", "http://192.168.0.200:3000", "https://manage.medhir.in")); // Allow frontend
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
         config.setAllowedHeaders(List.of("*"));
         config.setAllowCredentials(true); // Allow cookies
