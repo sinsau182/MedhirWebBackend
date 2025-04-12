@@ -1,12 +1,14 @@
 package com.medhir.rest.leave.service;
 
 import com.medhir.rest.employee.EmployeeService;
-import com.medhir.rest.exception.ResourceNotFoundException;
 import com.medhir.rest.leave.dto.LeaveRequest;
+import com.medhir.rest.leave.dto.LeaveWithEmployeeDetails;
 import com.medhir.rest.leave.dto.UpdateLeaveStatusRequest;
 import com.medhir.rest.leave.model.Leave;
 import com.medhir.rest.leave.model.LeaveBalance;
 import com.medhir.rest.leave.repositoris.LeaveRepository;
+import com.medhir.rest.exception.ResourceNotFoundException;
+import com.medhir.rest.exception.BadRequestException;
 import com.medhir.rest.utils.GeneratedId;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -18,6 +20,7 @@ import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 @Service
 public class LeaveApplicationService {
@@ -46,8 +49,6 @@ public class LeaveApplicationService {
             throw new ResourceNotFoundException("Employee not found with ID: " + request.getEmployeeId());
         }
 
-        com.medhir.rest.employee.EmployeeModel employee = employeeOpt.get();
-
         // Set end date equal to start date if not provided
         if (request.getEndDate() == null) {
             request.setEndDate(request.getStartDate());
@@ -57,13 +58,11 @@ public class LeaveApplicationService {
         Leave leave = new Leave();
         leave.setLeaveId(generatedId.generateId("LID", Leave.class, "leaveId"));
         leave.setEmployeeId(request.getEmployeeId());
-        leave.setEmployeeName(employee.getName());
-        leave.setDepartment(employee.getDepartment());
         leave.setLeaveName(request.getLeaveName());
         leave.setLeaveType(request.getLeaveType());
         leave.setStartDate(request.getStartDate());
         leave.setEndDate(request.getEndDate());
-        leave.setShiftType(request.getShiftType());
+        leave.setShiftType(request.getShiftType()); // Store as string
         leave.setReason(request.getReason());
         leave.setStatus("Pending");
 
@@ -78,7 +77,7 @@ public class LeaveApplicationService {
     private void checkAndAddWarning(Leave leave) {
         double requestedDays = calculateLeaveDays(leave);
         LeaveBalance currentBalance = leaveBalanceService.getCurrentMonthBalance(leave.getEmployeeId());
-        
+
         // First check comp-off balance
         double compOffBalance = currentBalance.getRemainingCompOffLeaves();
         double annualBalance = currentBalance.getRemainingAnnualLeaves();
@@ -86,8 +85,8 @@ public class LeaveApplicationService {
 
         if (requestedDays > totalAvailable) {
             leave.setRemarks("WARNING: Insufficient leave balance. This will be marked as LOP if approved. " +
-                           String.format("Requested: %.1f days, Available: %.1f days (Comp-off: %.1f, Annual: %.1f)",
-                           requestedDays, totalAvailable, compOffBalance, annualBalance));
+                    String.format("Requested: %.1f days, Available: %.1f days (Comp-off: %.1f, Annual: %.1f)",
+                            requestedDays, totalAvailable, compOffBalance, annualBalance));
         }
     }
 
@@ -99,7 +98,7 @@ public class LeaveApplicationService {
 
         Leave leave = leaveOpt.get();
 
-        
+
         if (!"Approved".equals(request.getStatus()) && !"Rejected".equals(request.getStatus())) {
             throw new IllegalArgumentException("Status must be either 'Approved' or 'Rejected'");
         }
@@ -123,7 +122,7 @@ public class LeaveApplicationService {
     private void handleRegularLeaveApproval(Leave leave) {
         double requestedDays = calculateLeaveDays(leave);
         LeaveBalance currentBalance = leaveBalanceService.getCurrentMonthBalance(leave.getEmployeeId());
-        
+
         double compOffBalance = currentBalance.getRemainingCompOffLeaves();
         double annualBalance = currentBalance.getRemainingAnnualLeaves();
         double totalAvailable = compOffBalance + annualBalance;
@@ -150,47 +149,46 @@ public class LeaveApplicationService {
 
             // Mark days with available leave as present with approved leave
             markPresentWithApprovedLeaveInAttendance(
-                leave.getEmployeeId(),
-                leave.getLeaveType(),
-                leaveStartDate,
-                leaveEndDate,
-                leave.getReason()
+                    leave.getEmployeeId(),
+                    leave.getLeaveType(),
+                    leaveStartDate,
+                    leaveEndDate,
+                    leave.getReason()
             );
 
             // If there are days to mark as LOP
             if (daysAsLOP > 0) {
                 LocalDate lopStartDate = leaveEndDate.plusDays(1);
                 markApprovedLOPInAttendance(
-                    leave.getEmployeeId(),
-                    leave.getLeaveType(),
-                    lopStartDate,
-                    leave.getEndDate(),
-                    leave.getReason()
+                        leave.getEmployeeId(),
+                        leave.getLeaveType(),
+                        lopStartDate,
+                        leave.getEndDate(),
+                        leave.getReason()
                 );
             }
         } else {
             // All days are LOP
             markApprovedLOPInAttendance(
-                leave.getEmployeeId(),
-                leave.getLeaveType(),
-                leave.getStartDate(),
-                leave.getEndDate(),
-                leave.getReason()
+                    leave.getEmployeeId(),
+                    leave.getLeaveType(),
+                    leave.getStartDate(),
+                    leave.getEndDate(),
+                    leave.getReason()
             );
         }
     }
 
     private double calculateLeaveDays(Leave leave) {
         long totalDays = ChronoUnit.DAYS.between(leave.getStartDate(), leave.getEndDate()) + 1;
-        
-        switch (leave.getShiftType()) {
-            case "Full Day":
-                return totalDays;
-            case "First Half (Morning)":
-            case "Second Half (Evening)":
-                return totalDays * 0.5;
-            default:
-                return totalDays;
+
+        String shiftType = leave.getShiftType();
+        if ("FULL_DAY".equals(shiftType)) {
+            return totalDays;
+        } else if ("FIRST_HALF".equals(shiftType) || "SECOND_HALF".equals(shiftType)) {
+            return totalDays * 0.5;
+        } else {
+            return totalDays;
         }
     }
 
@@ -204,6 +202,40 @@ public class LeaveApplicationService {
             throw new IllegalArgumentException("Status must be either 'Pending', 'Approved', or 'Rejected'");
         }
         return leaveRepository.findByStatus(status);
+    }
+
+    public List<LeaveWithEmployeeDetails> getLeavesWithEmployeeDetailsByStatus(String status) {
+        List<Leave> leaves = getLeavesByStatus(status);
+        return leaves.stream()
+                .map(this::enrichLeaveWithEmployeeDetails)
+                .collect(java.util.stream.Collectors.toList());
+    }
+
+    private LeaveWithEmployeeDetails enrichLeaveWithEmployeeDetails(Leave leave) {
+        LeaveWithEmployeeDetails enrichedLeave = new LeaveWithEmployeeDetails();
+        // Copy all fields from the original leave
+        enrichedLeave.setId(leave.getId());
+        enrichedLeave.setLeaveId(leave.getLeaveId());
+        enrichedLeave.setEmployeeId(leave.getEmployeeId());
+        enrichedLeave.setLeaveName(leave.getLeaveName());
+        enrichedLeave.setLeaveType(leave.getLeaveType());
+        enrichedLeave.setStartDate(leave.getStartDate());
+        enrichedLeave.setEndDate(leave.getEndDate());
+        enrichedLeave.setShiftType(leave.getShiftType());
+        enrichedLeave.setReason(leave.getReason());
+        enrichedLeave.setStatus(leave.getStatus());
+        enrichedLeave.setRemarks(leave.getRemarks());
+        enrichedLeave.setCreatedAt(leave.getCreatedAt());
+
+        // Add employee details
+        Optional<com.medhir.rest.employee.EmployeeModel> employeeOpt = employeeService.getEmployeeById(leave.getEmployeeId());
+        if (employeeOpt.isPresent()) {
+            com.medhir.rest.employee.EmployeeModel employee = employeeOpt.get();
+            enrichedLeave.setEmployeeName(employee.getName());
+            enrichedLeave.setDepartment(employee.getDepartment());
+        }
+
+        return enrichedLeave;
     }
 
     private String markPresentWithApprovedLeaveInAttendance(String employeeId, String leaveType, LocalDate leaveDate, LocalDate endDate, String reason) {
@@ -240,4 +272,4 @@ public class LeaveApplicationService {
         List<Leave> leaves = leaveRepository.findByEmployeeId(employeeId);
         return leaves;
     }
-} 
+}

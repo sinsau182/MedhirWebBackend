@@ -1,8 +1,10 @@
 package com.medhir.rest.service;
 
 import com.medhir.rest.exception.DuplicateResourceException;
+import com.medhir.rest.model.CompanyModel;
 import com.medhir.rest.model.UserModel;
 import com.medhir.rest.repository.UserRepository;
+import com.medhir.rest.utils.GeneratedId;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -13,6 +15,9 @@ public class UserService {
 
     @Autowired
     private UserRepository userRepository;
+    @Autowired
+    private GeneratedId generatedId;
+
 
     // Get all users
     public List<UserModel> getAllUsers() {
@@ -27,6 +32,7 @@ public class UserService {
         if(userRepository.findByPhone(user.getPhone()).isPresent()){
             throw new DuplicateResourceException("User With Phone : " + user.getPhone() + " already exits");
         }
+        user.setUserId(generatedId.generateId("UID", UserModel.class, "userId"));
         return userRepository.save(user);
     }
 }

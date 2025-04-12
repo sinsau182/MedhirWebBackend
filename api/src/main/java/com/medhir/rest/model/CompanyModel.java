@@ -18,6 +18,9 @@ public class CompanyModel {
     @Id
     private String id; //  MongoDB uses String IDs by default
 
+    private String companyId;
+
+
     @NotBlank(message = "Company name cannot be empty")
     @Size(min = 2, message = "Company name must have at least 2 characters")
     private String name;

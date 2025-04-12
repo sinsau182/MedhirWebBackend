@@ -1,8 +1,10 @@
 package com.medhir.rest.service;
 
 import com.medhir.rest.exception.DuplicateResourceException;
+import com.medhir.rest.exception.ResourceNotFoundException;
 import com.medhir.rest.model.CompanyModel;
 import com.medhir.rest.repository.CompanyRepository;
+import com.medhir.rest.utils.GeneratedId;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -14,6 +16,8 @@ public class CompanyService {
 
     @Autowired
     private CompanyRepository companyRepository;
+    @Autowired
+    GeneratedId generatedId;;
 
     public CompanyModel createCompany(CompanyModel company) {
         // Check if email already exists
@@ -24,6 +28,7 @@ public class CompanyService {
         if (companyRepository.findByPhone(company.getPhone()).isPresent()) {
             throw new DuplicateResourceException("Phone number already exists: " + company.getPhone());
         }
+        company.setCompanyId(generatedId.generateId("CID", CompanyModel.class, "companyId"));
 
         return companyRepository.save(company);
     }
@@ -66,5 +71,9 @@ public class CompanyService {
             throw new DuplicateResourceException("Company not found with ID: " + id);
         }
         companyRepository.deleteById(id);
+    }
+    public Optional<CompanyModel> getCompanyById(String companyId) {
+        return Optional.ofNullable(companyRepository.findByCompanyId(companyId)
+                .orElseThrow(() -> new ResourceNotFoundException("Company not found with ID: " + companyId)));
     }
 }

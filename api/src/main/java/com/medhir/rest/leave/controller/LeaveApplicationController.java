@@ -2,6 +2,7 @@ package com.medhir.rest.leave.controller;
 
 import com.medhir.rest.exception.ResourceNotFoundException;
 import com.medhir.rest.leave.dto.LeaveRequest;
+import com.medhir.rest.leave.dto.LeaveWithEmployeeDetails;
 import com.medhir.rest.leave.dto.UpdateLeaveStatusRequest;
 import com.medhir.rest.leave.model.Leave;
 import com.medhir.rest.leave.service.LeaveApplicationService;
@@ -64,7 +65,7 @@ public class LeaveApplicationController {
     @GetMapping("/status/{status}")
     public ResponseEntity<?> getLeavesByStatus(@PathVariable String status) {
         try {
-            List<Leave> leaves = leaveApplicationService.getLeavesByStatus(status);
+            List<LeaveWithEmployeeDetails> leaves = leaveApplicationService.getLeavesWithEmployeeDetailsByStatus(status);
             return ResponseEntity.ok(Map.of(
                     "count", leaves.size(),
                     "leaves", leaves
@@ -83,4 +84,4 @@ public class LeaveApplicationController {
             return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
         }
     }
-} 
+}

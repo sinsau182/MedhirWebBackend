@@ -9,6 +9,8 @@ import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.index.Indexed;
 import org.springframework.data.mongodb.core.mapping.Document;
 
+import java.util.List;
+
 @Document(collection = "users")
 @Getter
 @Setter
@@ -19,6 +21,9 @@ public class UserModel {
 
     @Id
     private String id;
+
+    private String userId;
+
 
     @NotEmpty(message = "Name cannot be empty")
     private String name;
@@ -32,4 +37,7 @@ public class UserModel {
     @Pattern(regexp = "\\d{10}", message = "Phone number must be exactly 10 digits")
     @Indexed(unique = true) //  Ensure unique phone in MongoDB
     private String phone;
+
+    private List<String> moduleIds;
+
 }
