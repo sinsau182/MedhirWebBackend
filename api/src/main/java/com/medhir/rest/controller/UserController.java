@@ -2,6 +2,7 @@ package com.medhir.rest.controller;
 
 import com.medhir.rest.model.UserModel;
 import com.medhir.rest.service.UserService;
+import com.medhir.rest.dto.UserCompanyDTO;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
@@ -32,5 +33,32 @@ public class UserController {
                 "message", "User created successfully!",
                 "user", savedUser
         ));
+    }
+
+    // Update an existing user
+    @PutMapping("/{userId}")
+    public ResponseEntity<Map<String, String>> updateUser(
+            @PathVariable String userId,
+            @Valid @RequestBody UserModel updatedUser) {
+        userService.updateUser(userId, updatedUser);
+        return ResponseEntity.ok(Map.of(
+                "message", "User updated successfully!"
+        ));
+    }
+
+    // Delete a user
+    @DeleteMapping("/{userId}")
+    public ResponseEntity<Map<String, String>> deleteUser(@PathVariable String userId) {
+        userService.deleteUser(userId);
+        return ResponseEntity.ok(Map.of(
+                "message", "User deleted successfully!"
+        ));
+    }
+
+    // Get all companies associated with a user
+    @GetMapping("/{userId}/companies")
+    public ResponseEntity<List<UserCompanyDTO>> getUserCompanies(@PathVariable String userId) {
+        List<UserCompanyDTO> companies = userService.getUserCompanies(userId);
+        return ResponseEntity.ok(companies);
     }
 }

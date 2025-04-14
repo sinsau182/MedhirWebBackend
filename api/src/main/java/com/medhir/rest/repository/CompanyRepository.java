@@ -10,4 +10,8 @@ public interface CompanyRepository extends MongoRepository<CompanyModel, String>
     Optional<CompanyModel> findByPhone(String phone);
 
     Optional<CompanyModel> findByCompanyId(String companyId);
+
+    boolean existsByCompanyId(String companyId);
+
+    void deleteByCompanyId(String companyId);
 }

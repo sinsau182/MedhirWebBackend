@@ -37,10 +37,10 @@ public class CompanyService {
         return companyRepository.findAll();
     }
 
-    public CompanyModel updateCompany(String id, CompanyModel company) {
-        Optional<CompanyModel> existingCompany = companyRepository.findById(id);
+    public CompanyModel updateCompany(String companyId, CompanyModel company) {
+        Optional<CompanyModel> existingCompany = companyRepository.findByCompanyId(companyId);
         if (existingCompany.isEmpty()) {
-            throw new DuplicateResourceException("Company not found with ID: " + id);
+            throw new ResourceNotFoundException("Company not found with ID: " + companyId);
         }
 
         CompanyModel companyToUpdate = existingCompany.get();
@@ -66,11 +66,11 @@ public class CompanyService {
         return companyRepository.save(companyToUpdate);
     }
 
-    public void deleteCompany(String id) {
-        if (!companyRepository.existsById(id)) {
-            throw new DuplicateResourceException("Company not found with ID: " + id);
+    public void deleteCompany(String companyId) {
+        if (!companyRepository.existsByCompanyId(companyId)) {
+            throw new DuplicateResourceException("Company not found with ID: " + companyId);
         }
-        companyRepository.deleteById(id);
+        companyRepository.deleteByCompanyId(companyId);
     }
     public Optional<CompanyModel> getCompanyById(String companyId) {
         return Optional.ofNullable(companyRepository.findByCompanyId(companyId)

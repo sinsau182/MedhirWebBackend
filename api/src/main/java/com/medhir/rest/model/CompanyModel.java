@@ -1,5 +1,6 @@
 package com.medhir.rest.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;
@@ -16,6 +17,8 @@ import org.springframework.data.mongodb.core.mapping.Document;
 public class CompanyModel {
 
     @Id
+    @JsonIgnore
+
     private String id; //  MongoDB uses String IDs by default
 
     private String companyId;

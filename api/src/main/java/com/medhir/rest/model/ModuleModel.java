@@ -1,5 +1,6 @@
 package com.medhir.rest.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.validation.constraints.NotBlank;
 import lombok.*;
 import org.springframework.data.annotation.Id;
@@ -16,6 +17,7 @@ import java.util.List;
 public class ModuleModel {
 
     @Id
+    @JsonIgnore
     private String id;
 
     private String moduleId;
