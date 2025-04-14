@@ -9,6 +9,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 @RestController
 @RequestMapping("/superadmin/companies")
@@ -29,6 +30,12 @@ public class CompanyController {
     @GetMapping
     public List<CompanyModel> getAllCompanies() {
         return companyService.getAllCompanies();
+    }
+    
+    @GetMapping("/{companyId}")
+    public ResponseEntity<Optional<CompanyModel>> getCompanyById(@PathVariable String companyId) {
+        Optional<CompanyModel> company = companyService.getCompanyById(companyId);
+        return ResponseEntity.ok(company);
     }
 
     @PutMapping("/{companyId}")

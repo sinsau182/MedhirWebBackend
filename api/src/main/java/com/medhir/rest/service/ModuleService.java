@@ -2,9 +2,9 @@ package com.medhir.rest.service;
 
 import com.medhir.rest.exception.ResourceNotFoundException;
 import com.medhir.rest.model.ModuleModel;
-import com.medhir.rest.model.UserModel;
+import com.medhir.rest.employee.EmployeeModel;
+import com.medhir.rest.employee.EmployeeRepository;
 import com.medhir.rest.repository.ModuleRepository;
-import com.medhir.rest.repository.UserRepository;
 import com.medhir.rest.utils.GeneratedId;
 import com.medhir.rest.dto.ModuleResponseDTO;
 import com.medhir.rest.model.CompanyModel;
@@ -23,7 +23,7 @@ public class ModuleService {
     private ModuleRepository moduleRepository;
 
     @Autowired
-    private UserRepository userRepository;
+    private EmployeeRepository employeeRepository;
 
     @Autowired
     private CompanyService companyService;
@@ -37,12 +37,12 @@ public class ModuleService {
             companyService.getCompanyById(moduleModel.getCompanyId());
         }
 
-        // Validate all users exist
-        List<UserModel> users = new ArrayList<>();
-        for (String userId : moduleModel.getUserIds()) {
-            UserModel user = userRepository.findByUserId(userId)
-                    .orElseThrow(() -> new ResourceNotFoundException("User with ID " + userId + " not found"));
-            users.add(user);
+        // Validate all employees exist
+        List<EmployeeModel> employees = new ArrayList<>();
+        for (String employeeId : moduleModel.getEmployeeIds()) {
+            EmployeeModel employee = employeeRepository.findByEmployeeId(employeeId)
+                    .orElseThrow(() -> new ResourceNotFoundException("Employee with ID " + employeeId + " not found"));
+            employees.add(employee);
         }
 
         // Generate module ID
@@ -51,13 +51,13 @@ public class ModuleService {
         // Save the module
         ModuleModel savedModule = moduleRepository.save(moduleModel);
 
-        // Update user details with module ID
-        for (UserModel user : users) {
-            if (user.getModuleIds() == null) {
-                user.setModuleIds(new ArrayList<>());
+        // Update employee details with module ID
+        for (EmployeeModel employee : employees) {
+            if (employee.getModuleIds() == null) {
+                employee.setModuleIds(new ArrayList<>());
             }
-            user.getModuleIds().add(savedModule.getModuleId());
-            userRepository.save(user);
+            employee.getModuleIds().add(savedModule.getModuleId());
+            employeeRepository.save(employee);
         }
 
         return savedModule;
@@ -66,12 +66,12 @@ public class ModuleService {
     public List<ModuleResponseDTO> getAllModules() {
         List<ModuleModel> modules = moduleRepository.findAll();
         return modules.stream().map(module -> {
-            List<String> userNames = new ArrayList<>();
-            if (module.getUserIds() != null) {
-                userNames = module.getUserIds().stream()
-                        .map(userId -> userRepository.findByUserId(userId)
-                                .map(UserModel::getName)
-                                .orElse("Unknown User"))
+            List<String> employeeNames = new ArrayList<>();
+            if (module.getEmployeeIds() != null) {
+                employeeNames = module.getEmployeeIds().stream()
+                        .map(employeeId -> employeeRepository.findByEmployeeId(employeeId)
+                                .map(EmployeeModel::getName)
+                                .orElse("Unknown Employee"))
                         .collect(Collectors.toList());
             }
 
@@ -89,7 +89,7 @@ public class ModuleService {
                     module.getModuleId(),
                     module.getModuleName(),
                     module.getDescription(),
-                    userNames,
+                    employeeNames,
                     companyName
             );
         }).collect(Collectors.toList());
@@ -112,39 +112,39 @@ public class ModuleService {
             existingModule.setCompanyId(updatedModule.getCompanyId());
         }
 
-        // Handle user updates
-        if (updatedModule.getUserIds() != null) {
-            // Remove module ID from old users who are no longer in the list
-            if (existingModule.getUserIds() != null) {
-                for (String oldUserId : existingModule.getUserIds()) {
-                    if (!updatedModule.getUserIds().contains(oldUserId)) {
-                        userRepository.findByUserId(oldUserId).ifPresent(user -> {
-                            if (user.getModuleIds() != null) {
-                                user.getModuleIds().remove(moduleId);
-                                userRepository.save(user);
+        // Handle employee updates
+        if (updatedModule.getEmployeeIds() != null) {
+            // Remove module ID from old employees who are no longer in the list
+            if (existingModule.getEmployeeIds() != null) {
+                for (String oldEmployeeId : existingModule.getEmployeeIds()) {
+                    if (!updatedModule.getEmployeeIds().contains(oldEmployeeId)) {
+                        employeeRepository.findByEmployeeId(oldEmployeeId).ifPresent(employee -> {
+                            if (employee.getModuleIds() != null) {
+                                employee.getModuleIds().remove(moduleId);
+                                employeeRepository.save(employee);
                             }
                         });
                     }
                 }
             }
 
-            // Validate all new users exist and update their module associations
-            List<UserModel> users = new ArrayList<>();
-            for (String userId : updatedModule.getUserIds()) {
-                UserModel user = userRepository.findByUserId(userId)
-                        .orElseThrow(() -> new ResourceNotFoundException("User with ID " + userId + " not found"));
-                users.add(user);
+            // Validate all new employees exist and update their module associations
+            List<EmployeeModel> employees = new ArrayList<>();
+            for (String employeeId : updatedModule.getEmployeeIds()) {
+                EmployeeModel employee = employeeRepository.findByEmployeeId(employeeId)
+                        .orElseThrow(() -> new ResourceNotFoundException("Employee with ID " + employeeId + " not found"));
+                employees.add(employee);
                 
-                // Add module ID to user if not already present
-                if (user.getModuleIds() == null) {
-                    user.setModuleIds(new ArrayList<>());
+                // Add module ID to employee if not already present
+                if (employee.getModuleIds() == null) {
+                    employee.setModuleIds(new ArrayList<>());
                 }
-                if (!user.getModuleIds().contains(moduleId)) {
-                    user.getModuleIds().add(moduleId);
-                    userRepository.save(user);
+                if (!employee.getModuleIds().contains(moduleId)) {
+                    employee.getModuleIds().add(moduleId);
+                    employeeRepository.save(employee);
                 }
             }
-            existingModule.setUserIds(updatedModule.getUserIds());
+            existingModule.setEmployeeIds(updatedModule.getEmployeeIds());
         }
 
         moduleRepository.save(existingModule);
@@ -154,13 +154,13 @@ public class ModuleService {
         ModuleModel module = moduleRepository.findByModuleId(moduleId)
                 .orElseThrow(() -> new ResourceNotFoundException("Module with ID " + moduleId + " not found"));
 
-        // Remove module ID from all associated users
-        if (module.getUserIds() != null) {
-            for (String userId : module.getUserIds()) {
-                userRepository.findByUserId(userId).ifPresent(user -> {
-                    if (user.getModuleIds() != null) {
-                        user.getModuleIds().remove(moduleId);
-                        userRepository.save(user);
+        // Remove module ID from all associated employees
+        if (module.getEmployeeIds() != null) {
+            for (String employeeId : module.getEmployeeIds()) {
+                employeeRepository.findByEmployeeId(employeeId).ifPresent(employee -> {
+                    if (employee.getModuleIds() != null) {
+                        employee.getModuleIds().remove(moduleId);
+                        employeeRepository.save(employee);
                     }
                 });
             }

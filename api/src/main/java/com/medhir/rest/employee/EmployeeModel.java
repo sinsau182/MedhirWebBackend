@@ -15,6 +15,7 @@ import org.springframework.data.mongodb.core.mapping.Document;
 
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Set;
 
 @Getter
 @Setter
@@ -28,6 +29,32 @@ public class EmployeeModel {
     @NotBlank(message = "Employee Id cannot be empty")
     @Indexed(unique = true)
     private String employeeId;
+    
+    @NotBlank(message = "Company Id cannot be empty")
+    private String companyId;
+
+    @NotBlank(message = "Employee name cannot be empty")
+    private String name;
+
+    @Pattern(regexp = "\\d{10}", message = "Phone number must be exactly 10 digits")
+    @Indexed(unique = true)
+    @NotBlank(message = "Phone number cannot be empty")
+    private String phone;
+
+    @Pattern(regexp = "\\d{10}", message = "Phone number must be exactly 10 digits")
+    private String alternatePhone;
+
+    private Set<String> Roles;
+    private List<String> moduleIds;
+
+
+    @Email(message = "Invalid email format!")
+    @Indexed(unique = true)
+    private String emailPersonal;
+
+    @Email(message = "Invalid email format!")
+    @Indexed(unique = true)
+    private String emailOfficial;
 
     private String designation;
     private String fathersName;
@@ -42,27 +69,6 @@ public class EmployeeModel {
     private String employeeImgUrl="";
 
     private LocalDate joiningDate;
-
-    @NotBlank(message = "Employee name cannot be empty")
-    private String name;
-
-    @Email(message = "Invalid email format!")
-    @Indexed(unique = true)
-    private String emailPersonal;
-
-    @Email(message = "Invalid email format!")
-    @Indexed(unique = true)
-    private String emailOfficial;
-
-    @Pattern(regexp = "\\d{10}", message = "Phone number must be exactly 10 digits")
-    @Indexed(unique = true)
-    @NotBlank(message = "Phone number cannot be empty")
-    private String phone;
-
-    @Pattern(regexp = "\\d{10}", message = "Phone number must be exactly 10 digits")
-    private String alternatePhone;
-
-
     private String department;
     private String gender;
     private String reportingManager;

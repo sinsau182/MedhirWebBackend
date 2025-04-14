@@ -28,7 +28,7 @@ public class ModuleModel {
     @NotBlank(message = "Description cannot be empty")
     private String description;
 
-    private List<String> userIds;
+    private List<String> employeeIds;
 
     private String companyId;
 }

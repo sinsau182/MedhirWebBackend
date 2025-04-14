@@ -46,6 +46,10 @@ public class UserService {
             throw new DuplicateResourceException("User With Phone : " + user.getPhone() + " already exits");
         }
         user.setUserId(generatedId.generateId("UID", UserModel.class, "userId"));
+
+        // create username and password and set roles
+
+
         return userRepository.save(user);
     }
 
@@ -114,9 +118,9 @@ public class UserService {
                 .map(companyId -> {
                     try {
                         CompanyModel company = companyService.getCompanyById(companyId).orElseThrow();
-                        return new UserCompanyDTO(company.getCompanyId(), company.getName());
+                        return new UserCompanyDTO(company.getCompanyId(), company.getName(),company.getColorCode());
                     } catch (ResourceNotFoundException e) {
-                        return new UserCompanyDTO(companyId, "Unknown Company");
+                        return new UserCompanyDTO(companyId, "Unknown Company", "Unknown Color");
                     }
                 })
                 .collect(Collectors.toList());

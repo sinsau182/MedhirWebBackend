@@ -55,10 +55,5 @@ public class UserController {
         ));
     }
 
-    // Get all companies associated with a user
-    @GetMapping("/{userId}/companies")
-    public ResponseEntity<List<UserCompanyDTO>> getUserCompanies(@PathVariable String userId) {
-        List<UserCompanyDTO> companies = userService.getUserCompanies(userId);
-        return ResponseEntity.ok(companies);
-    }
+
 }

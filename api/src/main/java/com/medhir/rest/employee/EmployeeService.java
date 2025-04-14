@@ -2,7 +2,10 @@ package com.medhir.rest.employee;
 
 import com.medhir.rest.exception.DuplicateResourceException;
 import com.medhir.rest.exception.ResourceNotFoundException;
+import com.medhir.rest.model.CompanyModel;
+import com.medhir.rest.service.CompanyService;
 import com.medhir.rest.service.MinioService;
+import com.medhir.rest.utils.GeneratedId;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.*;
@@ -12,10 +15,7 @@ import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
 
 @Service
 public class EmployeeService {
@@ -31,6 +31,10 @@ public class EmployeeService {
     private EmployeeRepository employeeRepository;
     @Autowired
     private MinioService minioService;
+    @Autowired
+    private GeneratedId generatedId;
+    @Autowired
+    private CompanyService companyService;
 
     //Create Employee
     public EmployeeModel createEmployee(EmployeeModel employee,
@@ -53,6 +57,9 @@ public class EmployeeService {
         if(employeeRepository.findByPhone(employee.getPhone()).isPresent()){
             throw new DuplicateResourceException("Phone number already exists : " + employee.getPhone());
         }
+
+        // Set role as EMPLOYEE
+        employee.setRoles(Set.of("EMPLOYEE"));
 
         employee = setDefaultValues(employee);
 
@@ -80,7 +87,6 @@ public class EmployeeService {
         }
 
 
-
         EmployeeModel savedEmployee = employeeRepository.save(employee);
 
         // Call Auth Service to Register User for login access
@@ -91,6 +97,7 @@ public class EmployeeService {
         registerUserInAttendanceService(savedEmployee);
 
 
+
         return savedEmployee;
     }
 
@@ -99,17 +106,44 @@ public class EmployeeService {
         return employeeRepository.findAll();
     }
 
-    // Get Employee By EmployeeId
+    // Get All Employees by Company ID
+    public List<EmployeeModel> getAllEmployeesByCompanyId(String companyId) {
+        return employeeRepository.findByCompanyId(companyId);
+    }
+
+    // Get Employee By EmployeeId and CompanyId
+    public Optional<EmployeeModel> getEmployeeById(String companyId, String employeeId){
+        return employeeRepository.findByCompanyIdAndEmployeeId(companyId, employeeId);
+    }
+
+    // Get Employee By EmployeeId (for backward compatibility)
     public Optional<EmployeeModel> getEmployeeById(String employeeId){
         return employeeRepository.findByEmployeeId(employeeId);
     }
 
+    // Get Employees by Company ID and Reporting Manager
+    public List<EmployeeModel> getEmployeesByCompanyIdAndReportingManager(String companyId, String reportingManager){
+        return employeeRepository.findByCompanyIdAndReportingManager(companyId, reportingManager);
+    }
+
+    // Get Employees by Reporting Manager (for backward compatibility)
     public List<EmployeeModel> getEmployeesByReportingManager(String reportingManager){
         return employeeRepository.findByReportingManager(reportingManager);
     }
 
+    // Delete Employee by Company ID and Employee ID
+    public void deleteEmployee(String companyId, String employeeId) {
+        Optional<EmployeeModel> employeeOpt = employeeRepository.findByCompanyIdAndEmployeeId(companyId, employeeId);
+        if (employeeOpt.isEmpty()) {
+            throw new ResourceNotFoundException("Employee not found with company ID: " + companyId + " and employee ID: " + employeeId);
+        }
+        
+        // Delete the employee
+        employeeRepository.delete(employeeOpt.get());
+    }
+
     // Update Employee
-    public EmployeeModel updateEmployee(String employeeId, EmployeeModel updatedEmployee,
+    public EmployeeModel updateEmployee(String companyId, String employeeId, EmployeeModel updatedEmployee,
                                         MultipartFile profileImage,
                                         MultipartFile aadharImage,
                                         MultipartFile panImage,
@@ -117,13 +151,12 @@ public class EmployeeService {
                                         MultipartFile drivingLicenseImage,
                                         MultipartFile voterIdImage,
                                         MultipartFile passbookImage) {
-        return employeeRepository.findByEmployeeId(employeeId).map(existingEmployee -> {
+        return employeeRepository.findByCompanyIdAndEmployeeId(companyId, employeeId).map(existingEmployee -> {
 
             Optional<EmployeeModel> employeeIDExists = employeeRepository.findByEmployeeId(updatedEmployee.getEmployeeId());
             if(employeeIDExists.isPresent() && !employeeIDExists.get().getEmployeeId().equals(employeeId)){
                 throw new DuplicateResourceException("Employee ID already exists: " + updatedEmployee.getEmployeeId());
             }
-
 
             if (updatedEmployee.getEmailPersonal() != null) {
                 Optional<EmployeeModel> emailExists = employeeRepository.findByEmailPersonal(updatedEmployee.getEmailPersonal());
@@ -379,4 +412,44 @@ public class EmployeeService {
     }
 
 
+    public String generateEmployeeId(String companyId) {
+        CompanyModel company = companyService.getCompanyById(companyId)
+                .orElseThrow(() -> new ResourceNotFoundException("Company not found with ID: " + companyId));
+
+        String prefix = company.getPrefixForEmpID();
+
+        return generatedId.generateId(prefix, EmployeeModel.class, "employeeId");
+    }
+
+    // Register Admin as Employee
+    public EmployeeModel registerAdminAsEmployee(RegisterAdminRequest request) {
+        // Create a new employee model
+        EmployeeModel employee = new EmployeeModel();
+        
+        // Set basic details from the request
+        employee.setName(request.getName());
+        employee.setEmailPersonal(request.getEmail());
+        employee.setPhone(request.getPhone());
+        employee.setCompanyId(request.getCompanyId());
+        
+        // Set roles as both EMPLOYEE and HRADMIN
+        employee.setRoles(Set.of("EMPLOYEE", "HRADMIN"));
+        
+        // Generate employee ID
+        employee.setEmployeeId(generateEmployeeId(request.getCompanyId()));
+        
+        // Set default values for required fields
+        employee = setDefaultValues(employee);
+        
+        // Save the employee
+        EmployeeModel savedEmployee = employeeRepository.save(employee);
+        
+        // Register user in auth service
+        registerUserInAuthService(savedEmployee);
+        
+        // Register user in attendance service
+        registerUserInAttendanceService(savedEmployee);
+        
+        return savedEmployee;
+    }
 }

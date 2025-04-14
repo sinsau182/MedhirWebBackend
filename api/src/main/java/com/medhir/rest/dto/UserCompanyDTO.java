@@ -10,4 +10,5 @@ import lombok.NoArgsConstructor;
 public class UserCompanyDTO {
     private String companyId;
     private String companyName;
+    private String colorCode;
 } 

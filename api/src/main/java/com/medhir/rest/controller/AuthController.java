@@ -2,6 +2,7 @@ package com.medhir.rest.controller;
 
 import com.medhir.rest.dto.AuthRequest;
 import com.medhir.rest.dto.AuthResponse;
+import com.medhir.rest.dto.RegisterRequest;
 import com.medhir.rest.service.AuthService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -16,10 +17,10 @@ public class AuthController {
 
     private final AuthService authService;
 
-//        @PostMapping("/register")
-//        public String register(@RequestBody RegisterRequest request) {
-//            return authService.register(request);
-//        }
+        @PostMapping("/register")
+        public String register(@RequestBody RegisterRequest request) {
+            return authService.register(request);
+        }
 
     @PostMapping("/login")
     public AuthResponse login(@RequestBody AuthRequest request) {

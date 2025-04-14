@@ -34,7 +34,7 @@ public class GeneratedId {
         List<Object> documents = mongoTemplate.find(query, Object.class, collectionName);
 
         // Find the highest numeric ID
-        int highestNumber = 0;
+        int highestNumber = 100;
         Pattern pattern = Pattern.compile("^" + prefix + "(\\d+)$");
 
         for (Object doc : documents) {

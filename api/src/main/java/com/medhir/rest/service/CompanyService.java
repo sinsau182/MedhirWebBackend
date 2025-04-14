@@ -62,6 +62,7 @@ public class CompanyService {
         companyToUpdate.setPhone(company.getPhone());
         companyToUpdate.setGst(company.getGst());
         companyToUpdate.setRegAdd(company.getRegAdd());
+        companyToUpdate.setPrefixForEmpID(company.getPrefixForEmpID());
 
         return companyRepository.save(companyToUpdate);
     }

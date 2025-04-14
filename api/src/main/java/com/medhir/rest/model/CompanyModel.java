@@ -46,4 +46,9 @@ public class CompanyModel {
 
     @NotBlank(message = "Registration address cannot be empty")
     private String regAdd;
+
+    private String prefixForEmpID;
+
+    private String colorCode="#FFFFFF";
+
 }

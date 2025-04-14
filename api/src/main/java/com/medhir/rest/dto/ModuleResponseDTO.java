@@ -13,6 +13,6 @@ public class ModuleResponseDTO {
     private String moduleId;
     private String moduleName;
     private String description;
-    private List<String> userNames;
+    private List<String> employeeNames;
     private String companyName;
 } 
