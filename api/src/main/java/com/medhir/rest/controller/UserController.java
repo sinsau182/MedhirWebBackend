@@ -1,5 +1,8 @@
 package com.medhir.rest.controller;
 
+import com.medhir.rest.dto.RegisterAdminRequest;
+import com.medhir.rest.employee.EmployeeModel;
+import com.medhir.rest.employee.EmployeeService;
 import com.medhir.rest.model.UserModel;
 import com.medhir.rest.service.UserService;
 import com.medhir.rest.dto.UserCompanyDTO;
@@ -17,6 +20,8 @@ public class UserController {
 
     @Autowired
     private UserService userService;
+    @Autowired
+    private EmployeeService employeeService;
 
     // Get all users for dropdown
     @GetMapping
@@ -27,8 +32,8 @@ public class UserController {
 
     // Create a new user
     @PostMapping
-    public ResponseEntity<Map<String, Object>> createUser(@Valid @RequestBody UserModel user) {
-        UserModel savedUser = userService.createUser(user);
+    public ResponseEntity<Map<String, Object>> createUser(@Valid @RequestBody RegisterAdminRequest user) {
+        EmployeeModel savedUser = employeeService.registerAdminAsEmployee(user);
         return ResponseEntity.ok(Map.of(
                 "message", "User created successfully!",
                 "user", savedUser

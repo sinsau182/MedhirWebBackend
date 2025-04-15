@@ -40,9 +40,9 @@ public class EmployeeController {
     }
 
     // Get all companies associated with admins
-    @GetMapping("/hradmin/companies/{userId}")
-    public ResponseEntity<List<UserCompanyDTO>> getUserCompanies(@PathVariable String userId) {
-        List<UserCompanyDTO> companies = userService.getUserCompanies(userId);
+    @GetMapping("/hradmin/companies/{employeeId}")
+    public ResponseEntity<List<UserCompanyDTO>> getUserCompanies(@PathVariable String employeeId) {
+        List<UserCompanyDTO> companies = employeeService.getEmployeeCompanies(employeeId);
         return ResponseEntity.ok(companies);
     }
 

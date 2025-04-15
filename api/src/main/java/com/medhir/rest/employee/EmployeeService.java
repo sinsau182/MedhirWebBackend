@@ -1,8 +1,12 @@
 package com.medhir.rest.employee;
 
+import com.medhir.rest.dto.RegisterAdminRequest;
+import com.medhir.rest.dto.UserCompanyDTO;
 import com.medhir.rest.exception.DuplicateResourceException;
 import com.medhir.rest.exception.ResourceNotFoundException;
 import com.medhir.rest.model.CompanyModel;
+import com.medhir.rest.model.ModuleModel;
+import com.medhir.rest.repository.ModuleRepository;
 import com.medhir.rest.service.CompanyService;
 import com.medhir.rest.service.MinioService;
 import com.medhir.rest.utils.GeneratedId;
@@ -16,6 +20,7 @@ import org.springframework.web.client.RestTemplate;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.util.*;
+import java.util.stream.Collectors;
 
 @Service
 public class EmployeeService {
@@ -35,6 +40,8 @@ public class EmployeeService {
     private GeneratedId generatedId;
     @Autowired
     private CompanyService companyService;
+    @Autowired
+    ModuleRepository moduleRepository;
 
     //Create Employee
     public EmployeeModel createEmployee(EmployeeModel employee,
@@ -451,5 +458,43 @@ public class EmployeeService {
         registerUserInAttendanceService(savedEmployee);
         
         return savedEmployee;
+    }
+
+    public List<UserCompanyDTO> getEmployeeCompanies(String employeeId) {
+        EmployeeModel employee = employeeRepository.findByEmployeeId(employeeId)
+                .orElseThrow(() -> new ResourceNotFoundException("Employee with ID " + employeeId + " not found"));
+
+        if (employee.getModuleIds() == null || employee.getModuleIds().isEmpty()) {
+            return List.of();
+        }
+
+        // Get all modules for the employee
+        List<ModuleModel> modules = employee.getModuleIds().stream()
+                .map(moduleId -> moduleRepository.findByModuleId(moduleId))
+                .filter(Optional::isPresent)
+                .map(Optional::get)
+                .toList();
+
+        // Get unique company IDs from modules
+        Set<String> companyIds = modules.stream()
+                .filter(module -> module.getCompanyId() != null)
+                .map(ModuleModel::getCompanyId)
+                .collect(Collectors.toSet());
+
+        // Get company details for each company ID
+        return companyIds.stream()
+                .map(companyId -> {
+                    try {
+                        Optional<CompanyModel> company = companyService.getCompanyById(companyId);
+                        return new UserCompanyDTO(
+                                company.get().getCompanyId(),
+                                company.get().getName(),
+                                company.get().getColorCode()
+                        );
+                    } catch (ResourceNotFoundException e) {
+                        return new UserCompanyDTO(companyId, "Unknown Company", "Unknown Color");
+                    }
+                })
+                .collect(Collectors.toList());
     }
 }

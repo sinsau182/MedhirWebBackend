@@ -6,7 +6,6 @@ import com.medhir.rest.model.CompanyModel;
 import com.medhir.rest.model.UserModel;
 import com.medhir.rest.repository.UserRepository;
 import com.medhir.rest.utils.GeneratedId;
-import com.medhir.rest.dto.UserCompanyDTO;
 import com.medhir.rest.model.ModuleModel;
 import com.medhir.rest.repository.ModuleRepository;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -48,6 +47,7 @@ public class UserService {
         user.setUserId(generatedId.generateId("UID", UserModel.class, "userId"));
 
         // create username and password and set roles
+
 
 
         return userRepository.save(user);
@@ -92,37 +92,37 @@ public class UserService {
         userRepository.delete(user);
     }
 
-    public List<UserCompanyDTO> getUserCompanies(String userId) {
-        UserModel user = userRepository.findByUserId(userId)
-                .orElseThrow(() -> new ResourceNotFoundException("User with ID " + userId + " not found"));
-
-        if (user.getModuleIds() == null || user.getModuleIds().isEmpty()) {
-            return List.of();
-        }
-
-        // Get all modules for the user
-        List<ModuleModel> modules = user.getModuleIds().stream()
-                .map(moduleId -> moduleRepository.findByModuleId(moduleId))
-                .filter(Optional::isPresent)
-                .map(Optional::get)
-                .toList();
-
-        // Get unique company IDs from modules
-        Set<String> companyIds = modules.stream()
-                .filter(module -> module.getCompanyId() != null)
-                .map(ModuleModel::getCompanyId)
-                .collect(Collectors.toSet());
-
-        // Get company details for each company ID
-        return companyIds.stream()
-                .map(companyId -> {
-                    try {
-                        CompanyModel company = companyService.getCompanyById(companyId).orElseThrow();
-                        return new UserCompanyDTO(company.getCompanyId(), company.getName(),company.getColorCode());
-                    } catch (ResourceNotFoundException e) {
-                        return new UserCompanyDTO(companyId, "Unknown Company", "Unknown Color");
-                    }
-                })
-                .collect(Collectors.toList());
-    }
+//    public List<UserCompanyDTO> getUserCompanies(String userId) {
+//        UserModel user = userRepository.findByUserId(userId)
+//                .orElseThrow(() -> new ResourceNotFoundException("User with ID " + userId + " not found"));
+//
+//        if (user.getModuleIds() == null || user.getModuleIds().isEmpty()) {
+//            return List.of();
+//        }
+//
+//        // Get all modules for the user
+//        List<ModuleModel> modules = user.getModuleIds().stream()
+//                .map(moduleId -> moduleRepository.findByModuleId(moduleId))
+//                .filter(Optional::isPresent)
+//                .map(Optional::get)
+//                .toList();
+//
+//        // Get unique company IDs from modules
+//        Set<String> companyIds = modules.stream()
+//                .filter(module -> module.getCompanyId() != null)
+//                .map(ModuleModel::getCompanyId)
+//                .collect(Collectors.toSet());
+//
+//        // Get company details for each company ID
+//        return companyIds.stream()
+//                .map(companyId -> {
+//                    try {
+//                        CompanyModel company = companyService.getCompanyById(companyId).orElseThrow();
+//                        return new UserCompanyDTO(company.getCompanyId(), company.getName(),company.getColorCode());
+//                    } catch (ResourceNotFoundException e) {
+//                        return new UserCompanyDTO(companyId, "Unknown Company", "Unknown Color");
+//                    }
+//                })
+//                .collect(Collectors.toList());
+//    }
 }

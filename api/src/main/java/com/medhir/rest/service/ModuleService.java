@@ -7,14 +7,18 @@ import com.medhir.rest.employee.EmployeeRepository;
 import com.medhir.rest.repository.ModuleRepository;
 import com.medhir.rest.utils.GeneratedId;
 import com.medhir.rest.dto.ModuleResponseDTO;
+import com.medhir.rest.dto.UserCompanyDTO;
 import com.medhir.rest.model.CompanyModel;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
+import java.util.HashMap;
+import java.util.Set;
 
 @Service
 public class ModuleService {
@@ -66,22 +70,29 @@ public class ModuleService {
     public List<ModuleResponseDTO> getAllModules() {
         List<ModuleModel> modules = moduleRepository.findAll();
         return modules.stream().map(module -> {
-            List<String> employeeNames = new ArrayList<>();
+            List<Map<String, String>> employees = new ArrayList<>();
             if (module.getEmployeeIds() != null) {
-                employeeNames = module.getEmployeeIds().stream()
-                        .map(employeeId -> employeeRepository.findByEmployeeId(employeeId)
-                                .map(EmployeeModel::getName)
-                                .orElse("Unknown Employee"))
+                employees = module.getEmployeeIds().stream()
+                        .map(employeeId -> {
+                            Map<String, String> employeeInfo = new HashMap<>();
+                            employeeInfo.put("employeeId", employeeId);
+                            employeeInfo.put("name", employeeRepository.findByEmployeeId(employeeId)
+                                    .map(EmployeeModel::getName)
+                                    .orElse("Unknown Employee"));
+                            return employeeInfo;
+                        })
                         .collect(Collectors.toList());
             }
 
-            String companyName = null;
+            Map<String, String> companyInfo = new HashMap<>();
             if (module.getCompanyId() != null) {
                 try {
                     Optional<CompanyModel> company = companyService.getCompanyById(module.getCompanyId());
-                    companyName = company.get().getName();
+                    companyInfo.put("companyId", module.getCompanyId());
+                    companyInfo.put("name", company.get().getName());
                 } catch (ResourceNotFoundException e) {
-                    companyName = "Unknown Company";
+                    companyInfo.put("companyId", module.getCompanyId());
+                    companyInfo.put("name", "Unknown Company");
                 }
             }
 
@@ -89,8 +100,8 @@ public class ModuleService {
                     module.getModuleId(),
                     module.getModuleName(),
                     module.getDescription(),
-                    employeeNames,
-                    companyName
+                    employees,
+                    companyInfo
             );
         }).collect(Collectors.toList());
     }
@@ -168,4 +179,6 @@ public class ModuleService {
 
         moduleRepository.delete(module);
     }
+
+
 }

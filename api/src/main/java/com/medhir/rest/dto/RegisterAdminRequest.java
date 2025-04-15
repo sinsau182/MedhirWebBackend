@@ -1,10 +1,12 @@
-package com.medhir.rest.employee;
+package com.medhir.rest.dto;
 
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;
 import lombok.Getter;
 import lombok.Setter;
+
+import java.util.List;
 
 @Getter
 @Setter
@@ -21,4 +23,6 @@ public class RegisterAdminRequest {
 
     @NotBlank(message = "Company Id cannot be empty")
     private String companyId;
+
+    private List<String> moduleIds;
 } 

@@ -3,6 +3,7 @@ package com.medhir.rest.controller;
 import com.medhir.rest.model.ModuleModel;
 import com.medhir.rest.service.ModuleService;
 import com.medhir.rest.dto.ModuleResponseDTO;
+import com.medhir.rest.dto.UserCompanyDTO;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
@@ -49,4 +50,10 @@ public class ModuleController {
                 "message", "Module deleted successfully!"
         ));
     }
+//
+//    @GetMapping("/employee/{employeeId}/companies")
+//    public ResponseEntity<List<UserCompanyDTO>> getEmployeeCompanies(@PathVariable String employeeId) {
+//        List<UserCompanyDTO> companies = moduleService.getEmployeeCompanies(employeeId);
+//        return ResponseEntity.ok(companies);
+//    }
 }
