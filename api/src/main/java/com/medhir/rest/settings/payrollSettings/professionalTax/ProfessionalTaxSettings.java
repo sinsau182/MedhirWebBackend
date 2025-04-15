@@ -1,6 +1,7 @@
 package com.medhir.rest.settings.payrollSettings.professionalTax;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import jakarta.validation.constraints.NotBlank;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -19,6 +20,8 @@ public class ProfessionalTaxSettings {
     @JsonIgnore
     private String id;
 
+    @NotBlank(message = "company Id cannot be empty")
+    private String companyId;
     private String professionalTaxId = "PT1";
     private Double monthlySalaryThreshold;
     private Double amountAboveThreshold;

@@ -1,5 +1,6 @@
 package com.medhir.rest.settings.payrollSettings.professionalTax;
 
+import com.medhir.rest.exception.DuplicateResourceException;
 import com.medhir.rest.exception.ResourceNotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -13,16 +14,16 @@ public class ProfessionalTaxSettingsService {
     @Autowired
     private ProfessionalTaxSettingsRepository repository;
 
-    public ProfessionalTaxSettings getProfessionalTaxSettings() {
-        return repository.findFirstByOrderByCreatedAtDesc()
-                .orElseThrow(() -> new ResourceNotFoundException("Professional tax settings not found"));
+    public ProfessionalTaxSettings getProfessionalTaxSettingsByCompany(String companyId) {
+        return repository.findFirstByCompanyIdOrderByCreatedAtDesc(companyId)
+                .orElseThrow(() -> new ResourceNotFoundException("Professional tax settings not found for company: " + companyId));
     }
 
     public ProfessionalTaxSettings createProfessionalTaxSettings(ProfessionalTaxSettings settings) {
-        // Check if settings already exist
-        Optional<ProfessionalTaxSettings> existingSettings = repository.findFirstByOrderByCreatedAtDesc();
+        // Check if settings already exist for the company
+        Optional<ProfessionalTaxSettings> existingSettings = repository.findFirstByCompanyIdOrderByCreatedAtDesc(settings.getCompanyId());
         if (existingSettings.isPresent()) {
-            throw new ResourceNotFoundException("Professional tax settings already exist. Use update endpoint to modify.");
+            throw new DuplicateResourceException("Professional tax settings already exist for this company. Use update endpoint to modify.");
         }
 
         // Validate settings
@@ -35,10 +36,13 @@ public class ProfessionalTaxSettingsService {
         return repository.save(settings);
     }
 
-    public ProfessionalTaxSettings updateProfessionalTaxSettings(ProfessionalTaxSettings settings) {
-        // Get existing settings
-        ProfessionalTaxSettings existingSettings = repository.findFirstByOrderByCreatedAtDesc()
-                .orElseThrow(() -> new ResourceNotFoundException("Professional tax settings not found"));
+    public ProfessionalTaxSettings updateProfessionalTaxSettings(String companyId, ProfessionalTaxSettings settings) {
+        // Get existing settings for the company
+        ProfessionalTaxSettings existingSettings = repository.findFirstByCompanyIdOrderByCreatedAtDesc(companyId)
+                .orElseThrow(() -> new ResourceNotFoundException("Professional tax settings not found for company: " + companyId));
+
+        // Set the company ID in the settings object
+        settings.setCompanyId(companyId);
 
         // Validate settings
         validateProfessionalTaxSettings(settings);

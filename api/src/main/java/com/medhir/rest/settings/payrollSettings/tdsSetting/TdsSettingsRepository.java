@@ -7,5 +7,5 @@ import java.util.Optional;
 
 @Repository
 public interface TdsSettingsRepository extends MongoRepository<TdsSettings, String> {
-    Optional<TdsSettings> findFirstByOrderByCreatedAtDesc();
+    Optional<TdsSettings> findFirstByCompanyIdOrderByCreatedAtDesc(String companyId);
 }

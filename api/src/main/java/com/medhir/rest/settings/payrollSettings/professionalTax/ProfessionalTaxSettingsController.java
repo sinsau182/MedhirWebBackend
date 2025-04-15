@@ -6,15 +6,15 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
-@RequestMapping("/api/professional-tax-settings")
+@RequestMapping("/professional-tax-settings")
 public class ProfessionalTaxSettingsController {
 
     @Autowired
     private ProfessionalTaxSettingsService professionalTaxSettingsService;
 
-    @GetMapping
-    public ResponseEntity<ProfessionalTaxSettings> getProfessionalTaxSettings() {
-        return ResponseEntity.ok(professionalTaxSettingsService.getProfessionalTaxSettings());
+    @GetMapping("/company/{companyId}")
+    public ResponseEntity<ProfessionalTaxSettings> getProfessionalTaxSettingsByCompany(@PathVariable String companyId) {
+        return ResponseEntity.ok(professionalTaxSettingsService.getProfessionalTaxSettingsByCompany(companyId));
     }
 
     @PostMapping
@@ -23,9 +23,10 @@ public class ProfessionalTaxSettingsController {
         return ResponseEntity.ok(professionalTaxSettingsService.createProfessionalTaxSettings(settings));
     }
 
-    @PutMapping
+    @PutMapping("/company/{companyId}")
     public ResponseEntity<ProfessionalTaxSettings> updateProfessionalTaxSettings(
+            @PathVariable String companyId,
             @Valid @RequestBody ProfessionalTaxSettings settings) {
-        return ResponseEntity.ok(professionalTaxSettingsService.updateProfessionalTaxSettings(settings));
+        return ResponseEntity.ok(professionalTaxSettingsService.updateProfessionalTaxSettings(companyId, settings));
     }
 }

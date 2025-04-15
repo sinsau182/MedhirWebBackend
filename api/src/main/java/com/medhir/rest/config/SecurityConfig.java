@@ -46,7 +46,7 @@ public class SecurityConfig {
                         ).permitAll()
 
                         // Only HR Admin can access /hradmin/**
-                        .requestMatchers("/hradmin/**").hasAuthority("ROLE_HRADMIN")
+                        .requestMatchers("/hradmin/**").hasAnyAuthority("ROLE_HRADMIN", "ROLE_SUPERADMIN")
 
                         // Only Super Admin can access /superadmin/**
                         .requestMatchers("/superadmin/**").hasAuthority("ROLE_SUPERADMIN")

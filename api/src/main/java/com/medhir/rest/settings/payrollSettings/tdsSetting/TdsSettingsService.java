@@ -1,5 +1,6 @@
 package com.medhir.rest.settings.payrollSettings.tdsSetting;
 
+import com.medhir.rest.exception.DuplicateResourceException;
 import com.medhir.rest.exception.ResourceNotFoundException;
 import com.medhir.rest.utils.GeneratedId;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -22,16 +23,17 @@ public class TdsSettingsService {
         return tdsSettingsRepository.findAll();
     }
 
-    public TdsSettings getTdsSettings() {
-        return tdsSettingsRepository.findFirstByOrderByCreatedAtDesc()
-                .orElseThrow(() -> new ResourceNotFoundException("TDS settings not found"));
+
+    public TdsSettings getTdsSettingsByCompany(String companyId) {
+        return tdsSettingsRepository.findFirstByCompanyIdOrderByCreatedAtDesc(companyId)
+                .orElseThrow(() -> new ResourceNotFoundException("TDS settings not found for company: " + companyId));
     }
 
     public TdsSettings createTdsSettings(TdsSettings tdsSettings) {
-        // Check if settings already exist
-        Optional<TdsSettings> existingSettings = tdsSettingsRepository.findFirstByOrderByCreatedAtDesc();
+        // Check if settings already exist for the company
+        Optional<TdsSettings> existingSettings = tdsSettingsRepository.findFirstByCompanyIdOrderByCreatedAtDesc(tdsSettings.getCompanyId());
         if (existingSettings.isPresent()) {
-            throw new ResourceNotFoundException("TDS settings already exist. Use update endpoint to modify.");
+            throw new DuplicateResourceException("TDS settings already exist for this company. Use update endpoint to modify.");
         }
 
         // Validate settings
@@ -44,10 +46,13 @@ public class TdsSettingsService {
         return tdsSettingsRepository.save(tdsSettings);
     }
 
-    public TdsSettings updateTdsSettings(TdsSettings tdsSettings) {
-        // Get existing settings
-        TdsSettings existingSettings = tdsSettingsRepository.findFirstByOrderByCreatedAtDesc()
-                .orElseThrow(() -> new ResourceNotFoundException("TDS settings not found"));
+    public TdsSettings updateTdsSettings(String companyId, TdsSettings tdsSettings) {
+        // Get existing settings for the company
+        TdsSettings existingSettings = tdsSettingsRepository.findFirstByCompanyIdOrderByCreatedAtDesc(companyId)
+                .orElseThrow(() -> new ResourceNotFoundException("TDS settings not found for company: " + companyId));
+
+        // Set the company ID in the settings object
+        tdsSettings.setCompanyId(companyId);
 
         // Validate settings
         validateTdsSettings(tdsSettings);

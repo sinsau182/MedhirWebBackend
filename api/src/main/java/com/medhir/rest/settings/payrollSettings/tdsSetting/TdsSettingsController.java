@@ -6,15 +6,15 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
-@RequestMapping("/api/tds-settings")
+@RequestMapping("/tds-settings")
 public class TdsSettingsController {
 
     @Autowired
     private TdsSettingsService tdsSettingsService;
 
-    @GetMapping
-    public ResponseEntity<TdsSettings> getTdsSettings() {
-        return ResponseEntity.ok(tdsSettingsService.getTdsSettings());
+    @GetMapping("/company/{companyId}")
+    public ResponseEntity<TdsSettings> getTdsSettingsByCompany(@PathVariable String companyId) {
+        return ResponseEntity.ok(tdsSettingsService.getTdsSettingsByCompany(companyId));
     }
 
     @PostMapping
@@ -22,8 +22,10 @@ public class TdsSettingsController {
         return ResponseEntity.ok(tdsSettingsService.createTdsSettings(tdsSettings));
     }
 
-    @PutMapping
-    public ResponseEntity<TdsSettings> updateTdsSettings(@Valid @RequestBody TdsSettings tdsSettings) {
-        return ResponseEntity.ok(tdsSettingsService.updateTdsSettings(tdsSettings));
+    @PutMapping("/company/{companyId}")
+    public ResponseEntity<TdsSettings> updateTdsSettings(
+            @PathVariable String companyId,
+            @Valid @RequestBody TdsSettings tdsSettings) {
+        return ResponseEntity.ok(tdsSettingsService.updateTdsSettings(companyId, tdsSettings));
     }
 }

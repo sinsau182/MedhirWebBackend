@@ -7,5 +7,5 @@ import java.util.Optional;
 
 @Repository
 public interface ProfessionalTaxSettingsRepository extends MongoRepository<ProfessionalTaxSettings, String> {
-    Optional<ProfessionalTaxSettings> findFirstByOrderByCreatedAtDesc();
+    Optional<ProfessionalTaxSettings> findFirstByCompanyIdOrderByCreatedAtDesc(String companyId);
 }
