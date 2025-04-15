@@ -23,6 +23,9 @@ public class LeavePolicyModel {
     @NotBlank(message = "Policy name is required")
     private String name;
 
+    @NotBlank(message = "Company ID is required")
+    private String companyId;
+
     @NotEmpty(message = "Leave allocations are required")
     @Valid
     private List<LeaveAllocation> leaveAllocations;

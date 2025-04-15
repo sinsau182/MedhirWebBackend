@@ -33,6 +33,11 @@ public class LeaveTypeController {
         return ResponseEntity.ok(leaveTypeService.getAllLeaveTypes());
     }
 
+    @GetMapping("/company/{companyId}")
+    public ResponseEntity<List<LeaveTypeModel>> getLeaveTypesByCompanyId(@PathVariable String companyId) {
+        return ResponseEntity.ok(leaveTypeService.getLeaveTypesByCompanyId(companyId));
+    }
+
     @GetMapping("/{id}")
     public ResponseEntity<LeaveTypeModel> getLeaveTypeById(@PathVariable String id) {
         return ResponseEntity.ok(leaveTypeService.getLeaveTypeById(id));

@@ -37,6 +37,11 @@ public class PublicHolidaysController {
         return ResponseEntity.ok(publicHolidayService.getAllPublicHolidays());
     }
 
+    @GetMapping("/company/{companyId}")
+    public ResponseEntity<List<PublicHolidayModel>> getPublicHolidaysByCompanyId(@PathVariable String companyId) {
+        return ResponseEntity.ok(publicHolidayService.getPublicHolidaysByCompanyId(companyId));
+    }
+
     @GetMapping("/{id}")
     public ResponseEntity<PublicHolidayModel> getPublicHolidayById(@PathVariable String id) {
         return ResponseEntity.ok(publicHolidayService.getPublicHolidayById(id));

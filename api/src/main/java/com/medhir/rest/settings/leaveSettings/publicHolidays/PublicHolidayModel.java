@@ -26,6 +26,9 @@ public class PublicHolidayModel {
     @NotBlank(message = "Holiday name is required")
     private String holidayName;
 
+    @NotBlank(message = "Company ID is required")
+    private String companyId;
+
     @NotNull(message = "Date is required")
     private LocalDate date;
 

@@ -1,6 +1,7 @@
 package com.medhir.rest.settings.leaveSettings.publicHolidays;
 
 import com.medhir.rest.exception.ResourceNotFoundException;
+import com.medhir.rest.service.CompanyService;
 import com.medhir.rest.utils.GeneratedId;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -16,11 +17,18 @@ public class PublicHolidayService {
     private GeneratedId generatedId;
 
     @Autowired
+    private CompanyService companyService;
+
+    @Autowired
     public PublicHolidayService(PublicHolidayRepository publicHolidayRepository) {
         this.publicHolidayRepository = publicHolidayRepository;
     }
 
     public PublicHolidayModel createPublicHoliday(PublicHolidayModel holiday) {
+        // Check if company exists
+        companyService.getCompanyById(holiday.getCompanyId())
+            .orElseThrow(() -> new ResourceNotFoundException("Company not found with id: " + holiday.getCompanyId()));
+
         if (publicHolidayRepository.existsByHolidayName(holiday.getHolidayName())) {
             throw new IllegalArgumentException("Holiday with this name already exists");
         }
@@ -37,6 +45,10 @@ public class PublicHolidayService {
 
     public List<PublicHolidayModel> getAllPublicHolidays() {
         return publicHolidayRepository.findAll();
+    }
+
+    public List<PublicHolidayModel> getPublicHolidaysByCompanyId(String companyId) {
+        return publicHolidayRepository.findByCompanyId(companyId);
     }
 
     public PublicHolidayModel getPublicHolidayById(String id) {
@@ -56,6 +68,12 @@ public class PublicHolidayService {
     public PublicHolidayModel updatePublicHoliday(String id, PublicHolidayModel holiday) {
         PublicHolidayModel existingHoliday = getPublicHolidayById(id);
         
+        // Check if company exists if companyId is being updated
+        if (holiday.getCompanyId() != null && !holiday.getCompanyId().equals(existingHoliday.getCompanyId())) {
+            companyService.getCompanyById(holiday.getCompanyId())
+                .orElseThrow(() -> new ResourceNotFoundException("Company not found with id: " + holiday.getCompanyId()));
+        }
+        
         if (!existingHoliday.getHolidayName().equals(holiday.getHolidayName()) && 
             publicHolidayRepository.existsByHolidayName(holiday.getHolidayName())) {
             throw new IllegalArgumentException("Holiday with name " + holiday.getHolidayName() + " already exists");
@@ -69,6 +87,11 @@ public class PublicHolidayService {
         existingHoliday.setHolidayName(holiday.getHolidayName());
         existingHoliday.setDate(holiday.getDate());
         existingHoliday.setDescription(holiday.getDescription());
+        
+        // Update companyId if provided
+        if (holiday.getCompanyId() != null) {
+            existingHoliday.setCompanyId(holiday.getCompanyId());
+        }
 
         return publicHolidayRepository.save(existingHoliday);
     }

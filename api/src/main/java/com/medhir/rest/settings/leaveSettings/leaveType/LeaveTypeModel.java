@@ -24,6 +24,9 @@ public class LeaveTypeModel {
     @NotBlank(message = "Leave type name is required")
     private String leaveTypeName;
 
+    @NotNull(message = "Company ID is required")
+    private String companyId;
+
     @NotNull(message = "Accrual period is required")
     private String accrualPeriod;
 

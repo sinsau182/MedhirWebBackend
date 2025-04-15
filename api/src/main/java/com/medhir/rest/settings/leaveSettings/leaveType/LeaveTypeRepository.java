@@ -3,6 +3,7 @@ package com.medhir.rest.settings.leaveSettings.leaveType;
 import org.springframework.data.mongodb.repository.MongoRepository;
 import org.springframework.stereotype.Repository;
 
+import java.util.List;
 import java.util.Optional;
 
 @Repository
@@ -11,4 +12,5 @@ public interface LeaveTypeRepository extends MongoRepository<LeaveTypeModel, Str
     boolean existsByLeaveTypeName(String leaveTypeName);
     Optional<LeaveTypeModel> findByLeaveTypeId(String leaveTypeId);
     boolean existsByLeaveTypeId(String leaveTypeId);
+    List<LeaveTypeModel> findByCompanyId(String companyId);
 }

@@ -3,6 +3,7 @@ package com.medhir.rest.settings.leaveSettings.leavepolicy;
 import com.medhir.rest.exception.BadRequestException;
 import com.medhir.rest.exception.DuplicateResourceException;
 import com.medhir.rest.exception.ResourceNotFoundException;
+import com.medhir.rest.service.CompanyService;
 import com.medhir.rest.settings.leaveSettings.leaveType.LeaveTypeService;
 import com.medhir.rest.utils.GeneratedId;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -23,7 +24,14 @@ public class LeavePolicyService {
     @Autowired
     private GeneratedId generatedId;
 
+    @Autowired
+    private CompanyService companyService;
+
     public LeavePolicyModel createLeavePolicy(LeavePolicyModel leavePolicy) {
+        // Check if company exists
+        companyService.getCompanyById(leavePolicy.getCompanyId())
+            .orElseThrow(() -> new ResourceNotFoundException("Company not found with id: " + leavePolicy.getCompanyId()));
+
         if (leavePolicyRepository.existsByName(leavePolicy.getName())) {
             throw new DuplicateResourceException("Leave policy with name " + leavePolicy.getName() + " already exists");
         }
@@ -43,6 +51,10 @@ public class LeavePolicyService {
         return leavePolicyRepository.findAll();
     }
 
+    public List<LeavePolicyModel> getLeavePoliciesByCompanyId(String companyId) {
+        return leavePolicyRepository.findByCompanyId(companyId);
+    }
+
     public LeavePolicyModel getLeavePolicyById(String id) {
         // First try to find by leavePolicyId
         LeavePolicyModel leavePolicy = leavePolicyRepository.findByLeavePolicyId(id)
@@ -60,6 +72,12 @@ public class LeavePolicyService {
     public LeavePolicyModel updateLeavePolicy(String id, LeavePolicyModel leavePolicy) {
         LeavePolicyModel existingPolicy = getLeavePolicyById(id);
         
+        // Check if company exists if companyId is being updated
+        if (leavePolicy.getCompanyId() != null && !leavePolicy.getCompanyId().equals(existingPolicy.getCompanyId())) {
+            companyService.getCompanyById(leavePolicy.getCompanyId())
+                .orElseThrow(() -> new ResourceNotFoundException("Company not found with id: " + leavePolicy.getCompanyId()));
+        }
+        
         if (!existingPolicy.getName().equals(leavePolicy.getName()) && 
             leavePolicyRepository.existsByName(leavePolicy.getName())) {
             throw new DuplicateResourceException("Leave policy with name " + leavePolicy.getName() + " already exists");
@@ -70,6 +88,11 @@ public class LeavePolicyService {
         existingPolicy.setName(leavePolicy.getName());
         existingPolicy.setLeaveAllocations(leavePolicy.getLeaveAllocations());
         existingPolicy.setUpdatedAt(LocalDateTime.now().toString());
+        
+        // Update companyId if provided
+        if (leavePolicy.getCompanyId() != null) {
+            existingPolicy.setCompanyId(leavePolicy.getCompanyId());
+        }
 
         return leavePolicyRepository.save(existingPolicy);
     }

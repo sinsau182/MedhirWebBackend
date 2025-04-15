@@ -31,6 +31,11 @@ public class LeavePolicyController {
         return ResponseEntity.ok(leavePolicyService.getAllLeavePolicies());
     }
 
+    @GetMapping("/company/{companyId}")
+    public ResponseEntity<List<LeavePolicyModel>> getLeavePoliciesByCompanyId(@PathVariable String companyId) {
+        return ResponseEntity.ok(leavePolicyService.getLeavePoliciesByCompanyId(companyId));
+    }
+
     @GetMapping("/{id}")
     public ResponseEntity<LeavePolicyModel> getLeavePolicyById(@PathVariable String id) {
         return ResponseEntity.ok(leavePolicyService.getLeavePolicyById(id));
