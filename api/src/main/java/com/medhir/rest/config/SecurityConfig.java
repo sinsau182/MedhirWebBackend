@@ -35,23 +35,26 @@ public class SecurityConfig {
         http.cors(c -> c.configurationSource(corsConfigurationSource()))
                 .csrf(csrf -> csrf.disable())
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-                .authorizeHttpRequests(auth -> auth.requestMatchers("/auth/**","/employee/id/*","/employee/update-request","/payslip/generate/**")
+                .authorizeHttpRequests(auth -> auth
+                        .requestMatchers("/auth/**", "/employee/id/*", "/employee/update-request", "/payslip/generate/**")
                         .permitAll()
+                        // Allow SUPERADMIN to access all routes
+                        .requestMatchers("/**")
+                        .hasAuthority("ROLE_SUPERADMIN")
                         .requestMatchers("/hradmin/**")
                         .hasAuthority("ROLE_HRADMIN")
-                        .requestMatchers("/superadmin/**")
-                        .hasAuthority("ROLE_SUPERADMIN")
                         .anyRequest()
-                        .authenticated())
-                .exceptionHandling(
-                        exception -> exception
-                                .authenticationEntryPoint(authenticationEntryPoint()) // Handle 401
-                                .accessDeniedHandler(accessDeniedHandler()) // Handle 403
+                        .authenticated()
+                )
+                .exceptionHandling(exception -> exception
+                        .authenticationEntryPoint(authenticationEntryPoint()) // Handle 401
+                        .accessDeniedHandler(accessDeniedHandler()) // Handle 403
                 )
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
     }
+
 
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
