@@ -32,28 +32,37 @@ public class SecurityConfig {
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
-        http.cors(c -> c.configurationSource(corsConfigurationSource()))
+        http
+                .cors(c -> c.configurationSource(corsConfigurationSource()))
                 .csrf(csrf -> csrf.disable())
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/auth/**", "/employee/id/*", "/employee/update-request", "/payslip/generate/**")
-                        .permitAll()
-                        // Allow SUPERADMIN to access all routes
-                        .requestMatchers("/**")
-                        .hasAuthority("ROLE_SUPERADMIN")
-                        .requestMatchers("/hradmin/**")
-                        .hasAuthority("ROLE_HRADMIN")
-                        .anyRequest()
-                        .authenticated()
+                        // Publicly accessible endpoints
+                        .requestMatchers(
+                                "/auth/**",
+                                "/employee/id/*",
+                                "/employee/update-request",
+                                "/payslip/generate/**"
+                        ).permitAll()
+
+                        // Only HR Admin can access /hradmin/**
+                        .requestMatchers("/hradmin/**").hasAuthority("ROLE_HRADMIN")
+
+                        // Only Super Admin can access /superadmin/**
+                        .requestMatchers("/superadmin/**").hasAuthority("ROLE_SUPERADMIN")
+
+                        // All other routes can be accessed by HR or Super Admin
+                        .anyRequest().hasAnyAuthority("ROLE_HRADMIN", "ROLE_SUPERADMIN")
                 )
                 .exceptionHandling(exception -> exception
-                        .authenticationEntryPoint(authenticationEntryPoint()) // Handle 401
-                        .accessDeniedHandler(accessDeniedHandler()) // Handle 403
+                        .authenticationEntryPoint(authenticationEntryPoint()) // 401 handler
+                        .accessDeniedHandler(accessDeniedHandler())           // 403 handler
                 )
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
     }
+
 
 
     @Bean
