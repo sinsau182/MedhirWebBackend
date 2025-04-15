@@ -47,6 +47,10 @@ public class DesignationService {
         return designationRepository.findAll();
     }
 
+    public List<DesignationModel> getDesignationsByDepartment(String departmentId) {
+        return designationRepository.findByDepartment(departmentId);
+    }
+
     public DesignationModel getDesignationById(String id) {
         // First try to find by designationId
         DesignationModel designation = designationRepository.findByDesignationId(id)
