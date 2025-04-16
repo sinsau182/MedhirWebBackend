@@ -2,6 +2,7 @@ package com.medhir.rest.leave.model;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import jakarta.validation.constraints.NotBlank;
 import lombok.Data;
 import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.annotation.Id;
@@ -12,12 +13,14 @@ import java.time.LocalDateTime;
 
 @Data
 @Document(collection = "Leaves") // Store both Leaves and CompOff in the same collection
-public class Leave {
+public class LeaveModel {
     @Id
     @JsonIgnore
     private String id;
     private String leaveId; // New field for leave ID
     private String employeeId;
+    @NotBlank(message = "Company id cannot be empty")
+    private String companyId; // Added companyId field
     private String leaveName; // "Leave",  "Comp Off"
     private String leaveType; // "Casual Leave", "Medical Leave", "Comp Off"
     private LocalDate startDate;

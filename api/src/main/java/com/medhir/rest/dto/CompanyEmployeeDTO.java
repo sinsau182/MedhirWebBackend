@@ -8,12 +8,12 @@ import lombok.NoArgsConstructor;
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
-public class EmployeeDetailsDTO extends EmployeeModel {
+public class CompanyEmployeeDTO extends EmployeeModel {
     private String departmentName;
     private String designationName;
     private String reportingManagerName;
 
-    public EmployeeDetailsDTO(EmployeeModel employee) {
+    public CompanyEmployeeDTO(EmployeeModel employee) {
         // Copy all fields from EmployeeModel
         this.setEmployeeId(employee.getEmployeeId());
         this.setName(employee.getName());

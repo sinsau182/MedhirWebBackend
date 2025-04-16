@@ -1,11 +1,11 @@
 package com.medhir.rest.leave.controller;
 
 import com.medhir.rest.exception.ResourceNotFoundException;
-import com.medhir.rest.leave.dto.LeaveRequest;
 import com.medhir.rest.leave.dto.LeaveWithEmployeeDetails;
 import com.medhir.rest.leave.dto.UpdateLeaveStatusRequest;
-import com.medhir.rest.leave.model.Leave;
+import com.medhir.rest.leave.model.LeaveModel;
 import com.medhir.rest.leave.service.LeaveApplicationService;
+import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -21,7 +21,7 @@ public class LeaveApplicationController {
     private LeaveApplicationService leaveApplicationService;
 
     @PostMapping("/apply")
-    public ResponseEntity<?> applyLeave(@RequestBody LeaveRequest request) {
+    public ResponseEntity<?> applyLeave(@Valid @RequestBody LeaveModel request) {
         try {
             // Validate leave type for regular leave
 //            if ("Leave".equals(request.getLeaveName()) && (request.getLeaveType() == null || request.getLeaveType().isEmpty())) {
@@ -29,10 +29,9 @@ public class LeaveApplicationController {
 //            }
             request.setLeaveType("Annual Leave");
 
-            Leave leave = leaveApplicationService.applyLeave(request);
+            LeaveModel leave = leaveApplicationService.applyLeave(request);
             return ResponseEntity.ok(Map.of(
-                    "message", "Leave application submitted successfully",
-                    "leave", leave
+                    "message", "Leave application submitted successfully"
             ));
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
@@ -42,10 +41,9 @@ public class LeaveApplicationController {
     @PutMapping("/update-status")
     public ResponseEntity<?> updateLeaveStatus(@RequestBody UpdateLeaveStatusRequest request) {
         try {
-            Leave leave = leaveApplicationService.updateLeaveStatus(request);
+            LeaveModel leave = leaveApplicationService.updateLeaveStatus(request);
             return ResponseEntity.ok(Map.of(
-                    "message", "Leave status updated successfully",
-                    "leave", leave
+                    "message", "Leave status updated successfully"
             ));
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
@@ -55,17 +53,17 @@ public class LeaveApplicationController {
     @GetMapping("/{leaveId}")
     public ResponseEntity<?> getLeaveById(@PathVariable String leaveId) {
         try {
-            Leave leave = leaveApplicationService.getLeaveByLeaveId(leaveId);
+            LeaveModel leave = leaveApplicationService.getLeaveByLeaveId(leaveId);
             return ResponseEntity.ok(leave);
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
         }
     }
 
-    @GetMapping("/status/{status}")
-    public ResponseEntity<?> getLeavesByStatus(@PathVariable String status) {
+    @GetMapping("/status/{companyId}/{status}")
+    public ResponseEntity<?> getLeavesByStatus(@PathVariable String companyId, @PathVariable String status) {
         try {
-            List<LeaveWithEmployeeDetails> leaves = leaveApplicationService.getLeavesWithEmployeeDetailsByStatus(status);
+            List<LeaveModel> leaves = leaveApplicationService.getLeavesByStatus(companyId, status);
             return ResponseEntity.ok(Map.of(
                     "count", leaves.size(),
                     "leaves", leaves
@@ -78,7 +76,7 @@ public class LeaveApplicationController {
     @GetMapping("/employee/{employeeId}")
     public ResponseEntity<?> getLeavesByEmployeeId(@PathVariable String employeeId) {
         try {
-            List<Leave> leaves = leaveApplicationService.getLeavesByEmployeeId(employeeId);
+            List<LeaveModel> leaves = leaveApplicationService.getLeavesByEmployeeId(employeeId);
             return ResponseEntity.ok(leaves);
         } catch (ResourceNotFoundException e) {
             return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));

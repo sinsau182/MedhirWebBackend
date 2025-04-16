@@ -1,15 +1,17 @@
 package com.medhir.rest.leave.service;
 
 import com.medhir.rest.employee.EmployeeService;
-import com.medhir.rest.leave.dto.LeaveRequest;
 import com.medhir.rest.leave.dto.LeaveWithEmployeeDetails;
 import com.medhir.rest.leave.dto.UpdateLeaveStatusRequest;
-import com.medhir.rest.leave.model.Leave;
+import com.medhir.rest.leave.model.LeaveModel;
 import com.medhir.rest.leave.model.LeaveBalance;
 import com.medhir.rest.leave.repositoris.LeaveRepository;
 import com.medhir.rest.exception.ResourceNotFoundException;
-import com.medhir.rest.exception.BadRequestException;
 import com.medhir.rest.utils.GeneratedId;
+import com.medhir.rest.settings.department.DepartmentService;
+import com.medhir.rest.settings.leaveSettings.leaveType.LeaveTypeService;
+import com.medhir.rest.settings.leaveSettings.leavepolicy.LeavePolicyService;
+import com.medhir.rest.service.CompanyService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
@@ -20,7 +22,6 @@ import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.Optional;
-import java.util.stream.Collectors;
 
 @Service
 public class LeaveApplicationService {
@@ -37,17 +38,33 @@ public class LeaveApplicationService {
     @Autowired
     private LeaveBalanceService leaveBalanceService;
 
+    @Autowired
+    private DepartmentService departmentService;
+
+    @Autowired
+    private LeavePolicyService leavePolicyService;
+
+    @Autowired
+    private LeaveTypeService leaveTypeService;
+
+    @Autowired
+    private CompanyService companyService;
+
     private final RestTemplate restTemplate = new RestTemplate();
 
     @Value("${leave.service.url}")
     private String APPLY_LEAVE_URL;
 
-    public Leave applyLeave(LeaveRequest request) {
+    public LeaveModel applyLeave(LeaveModel request) {
         // Validate employee exists and get their details
         Optional<com.medhir.rest.employee.EmployeeModel> employeeOpt = employeeService.getEmployeeById(request.getEmployeeId());
         if (employeeOpt.isEmpty()) {
             throw new ResourceNotFoundException("Employee not found with ID: " + request.getEmployeeId());
         }
+
+        // Validate company exists
+        companyService.getCompanyById(request.getCompanyId())
+            .orElseThrow(() -> new ResourceNotFoundException("Company not found with ID: " + request.getCompanyId()));
 
         // Set end date equal to start date if not provided
         if (request.getEndDate() == null) {
@@ -55,9 +72,10 @@ public class LeaveApplicationService {
         }
 
         // Create leave record
-        Leave leave = new Leave();
-        leave.setLeaveId(generatedId.generateId("LID", Leave.class, "leaveId"));
+        LeaveModel leave = new LeaveModel();
+        leave.setLeaveId(generatedId.generateId("LID", LeaveModel.class, "leaveId"));
         leave.setEmployeeId(request.getEmployeeId());
+        leave.setCompanyId(request.getCompanyId()); // Set companyId from request
         leave.setLeaveName(request.getLeaveName());
         leave.setLeaveType(request.getLeaveType());
         leave.setStartDate(request.getStartDate());
@@ -74,7 +92,7 @@ public class LeaveApplicationService {
         return leaveRepository.save(leave);
     }
 
-    private void checkAndAddWarning(Leave leave) {
+    private void checkAndAddWarning(LeaveModel leave) {
         double requestedDays = calculateLeaveDays(leave);
         LeaveBalance currentBalance = leaveBalanceService.getCurrentMonthBalance(leave.getEmployeeId());
 
@@ -90,13 +108,13 @@ public class LeaveApplicationService {
         }
     }
 
-    public Leave updateLeaveStatus(UpdateLeaveStatusRequest request) {
-        Optional<Leave> leaveOpt = leaveRepository.findByLeaveId(request.getLeaveId());
+    public LeaveModel updateLeaveStatus(UpdateLeaveStatusRequest request) {
+        Optional<LeaveModel> leaveOpt = leaveRepository.findByLeaveId(request.getLeaveId());
         if (leaveOpt.isEmpty()) {
             throw new ResourceNotFoundException("Leave not found with ID: " + request.getLeaveId());
         }
 
-        Leave leave = leaveOpt.get();
+        LeaveModel leave = leaveOpt.get();
 
 
         if (!"Approved".equals(request.getStatus()) && !"Rejected".equals(request.getStatus())) {
@@ -119,7 +137,7 @@ public class LeaveApplicationService {
         return leaveRepository.save(leave);
     }
 
-    private void handleRegularLeaveApproval(Leave leave) {
+    private void handleRegularLeaveApproval(LeaveModel leave) {
         double requestedDays = calculateLeaveDays(leave);
         LeaveBalance currentBalance = leaveBalanceService.getCurrentMonthBalance(leave.getEmployeeId());
 
@@ -179,7 +197,7 @@ public class LeaveApplicationService {
         }
     }
 
-    private double calculateLeaveDays(Leave leave) {
+    private double calculateLeaveDays(LeaveModel leave) {
         long totalDays = ChronoUnit.DAYS.between(leave.getStartDate(), leave.getEndDate()) + 1;
 
         String shiftType = leave.getShiftType();
@@ -192,26 +210,30 @@ public class LeaveApplicationService {
         }
     }
 
-    public Leave getLeaveByLeaveId(String leaveId) {
+    public LeaveModel getLeaveByLeaveId(String leaveId) {
         return leaveRepository.findByLeaveId(leaveId)
                 .orElseThrow(() -> new ResourceNotFoundException("Leave not found with ID: " + leaveId));
     }
 
-    public List<Leave> getLeavesByStatus(String status) {
+    public List<LeaveModel> getLeavesByStatus(String companyId, String status) {
+        // Validate company exists
+        companyService.getCompanyById(companyId)
+            .orElseThrow(() -> new ResourceNotFoundException("Company not found with id: " + companyId));
+
         if (!"Pending".equals(status) && !"Approved".equals(status) && !"Rejected".equals(status)) {
             throw new IllegalArgumentException("Status must be either 'Pending', 'Approved', or 'Rejected'");
         }
-        return leaveRepository.findByStatus(status);
+        return leaveRepository.findByCompanyIdAndStatus(companyId, status);
     }
 
-    public List<LeaveWithEmployeeDetails> getLeavesWithEmployeeDetailsByStatus(String status) {
-        List<Leave> leaves = getLeavesByStatus(status);
-        return leaves.stream()
-                .map(this::enrichLeaveWithEmployeeDetails)
-                .collect(java.util.stream.Collectors.toList());
-    }
+//    public List<LeaveWithEmployeeDetails> getLeavesWithEmployeeDetailsByStatus(String status) {
+//        List<LeaveModel> leaves = getLeavesByStatus(status);
+//        return leaves.stream()
+//                .map(this::enrichLeaveWithEmployeeDetails)
+//                .collect(java.util.stream.Collectors.toList());
+//    }
 
-    private LeaveWithEmployeeDetails enrichLeaveWithEmployeeDetails(Leave leave) {
+    private LeaveWithEmployeeDetails enrichLeaveWithEmployeeDetails(LeaveModel leave) {
         LeaveWithEmployeeDetails enrichedLeave = new LeaveWithEmployeeDetails();
         // Copy all fields from the original leave
         enrichedLeave.setId(leave.getId());
@@ -268,8 +290,8 @@ public class LeaveApplicationService {
         }
     }
 
-    public List<Leave> getLeavesByEmployeeId(String employeeId) {
-        List<Leave> leaves = leaveRepository.findByEmployeeId(employeeId);
+    public List<LeaveModel> getLeavesByEmployeeId(String employeeId) {
+        List<LeaveModel> leaves = leaveRepository.findByEmployeeId(employeeId);
         return leaves;
     }
 }

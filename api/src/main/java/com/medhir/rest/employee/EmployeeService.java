@@ -2,7 +2,7 @@ package com.medhir.rest.employee;
 
 import com.medhir.rest.dto.RegisterAdminRequest;
 import com.medhir.rest.dto.UserCompanyDTO;
-import com.medhir.rest.dto.EmployeeDetailsDTO;
+import com.medhir.rest.dto.CompanyEmployeeDTO;
 import com.medhir.rest.dto.ManagerEmployeeDTO;
 import com.medhir.rest.exception.DuplicateResourceException;
 import com.medhir.rest.exception.ResourceNotFoundException;
@@ -561,12 +561,12 @@ public class EmployeeService {
     }
 
     // Get All Employees by Company ID with additional details
-    public List<EmployeeDetailsDTO> getAllEmployeesByCompanyIdWithDetails(String companyId) {
+    public List<CompanyEmployeeDTO> getAllEmployeesByCompanyIdWithDetails(String companyId) {
         List<EmployeeModel> employees = employeeRepository.findByCompanyId(companyId);
         
         return employees.stream()
             .map(employee -> {
-                EmployeeDetailsDTO dto = new EmployeeDetailsDTO(employee);
+                CompanyEmployeeDTO dto = new CompanyEmployeeDTO(employee);
                 
                 // Get department name from department service
                 try {
