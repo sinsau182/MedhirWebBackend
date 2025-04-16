@@ -1,7 +1,13 @@
 package com.medhir.rest.dto;
 
 import com.medhir.rest.employee.EmployeeModel;
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 
+@Data
+@AllArgsConstructor
+@NoArgsConstructor
 public class EmployeeDetailsDTO extends EmployeeModel {
     private String departmentName;
     private String designationName;
@@ -36,29 +42,5 @@ public class EmployeeDetailsDTO extends EmployeeModel {
         this.setIdProofs(employee.getIdProofs());
         this.setBankDetails(employee.getBankDetails());
         this.setSalaryDetails(employee.getSalaryDetails());
-    }
-
-    public String getDepartmentName() {
-        return departmentName;
-    }
-
-    public void setDepartmentName(String departmentName) {
-        this.departmentName = departmentName;
-    }
-
-    public String getDesignationName() {
-        return designationName;
-    }
-
-    public void setDesignationName(String designationName) {
-        this.designationName = designationName;
-    }
-
-    public String getReportingManagerName() {
-        return reportingManagerName;
-    }
-
-    public void setReportingManagerName(String reportingManagerName) {
-        this.reportingManagerName = reportingManagerName;
     }
 } 

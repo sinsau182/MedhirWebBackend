@@ -12,6 +12,7 @@ import com.medhir.rest.service.CompanyService;
 import com.medhir.rest.service.MinioService;
 import com.medhir.rest.settings.designations.DesignationModel;
 import com.medhir.rest.settings.designations.DesignationService;
+import com.medhir.rest.settings.department.DepartmentService;
 import com.medhir.rest.utils.GeneratedId;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -47,6 +48,8 @@ public class EmployeeService {
     ModuleRepository moduleRepository;
     @Autowired
     private DesignationService designationService;
+    @Autowired
+    private DepartmentService departmentService;
 
     //Create Employee
     public EmployeeModel createEmployee(EmployeeModel employee,
@@ -546,9 +549,14 @@ public class EmployeeService {
             .map(employee -> {
                 EmployeeDetailsDTO dto = new EmployeeDetailsDTO(employee);
                 
-                // Get department name from department service if available
-                // For now, using department ID as name
-                dto.setDepartmentName(employee.getDepartment());
+                // Get department name from department service
+                try {
+                    if (employee.getDepartment() != null && !employee.getDepartment().isEmpty()) {
+                        dto.setDepartmentName(departmentService.getDepartmentById(employee.getDepartment()).getName());
+                    }
+                } catch (Exception e) {
+                    dto.setDepartmentName(employee.getDepartment());
+                }
                 
                 // Get designation name from designation service
                 try {
