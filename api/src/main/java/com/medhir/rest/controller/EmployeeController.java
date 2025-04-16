@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.medhir.rest.dto.UserCompanyDTO;
+import com.medhir.rest.dto.EmployeeDetailsDTO;
 import com.medhir.rest.employee.EmployeeModel;
 import com.medhir.rest.employee.EmployeeService;
 import com.medhir.rest.service.UserService;
@@ -104,6 +105,12 @@ public class EmployeeController {
     public ResponseEntity<List<EmployeeModel>> getAllEmployeesByCompanyId(@PathVariable String companyId) {
         List<EmployeeModel> employees = employeeService.getAllEmployeesByCompanyId(companyId);
         return ResponseEntity.ok(employees);
+    }
+
+    // Get All Employees by Company ID with additional details
+    @GetMapping("/hradmin/companies/{companyId}/employees/details")
+    public ResponseEntity<List<EmployeeDetailsDTO>> getAllEmployeesByCompanyIdWithDetails(@PathVariable String companyId) {
+        return ResponseEntity.ok(employeeService.getAllEmployeesByCompanyIdWithDetails(companyId));
     }
 
     // Get Employee by Company ID and Employee ID

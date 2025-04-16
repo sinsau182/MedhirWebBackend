@@ -2,6 +2,7 @@ package com.medhir.rest.employee;
 
 import com.medhir.rest.dto.RegisterAdminRequest;
 import com.medhir.rest.dto.UserCompanyDTO;
+import com.medhir.rest.dto.EmployeeDetailsDTO;
 import com.medhir.rest.exception.DuplicateResourceException;
 import com.medhir.rest.exception.ResourceNotFoundException;
 import com.medhir.rest.model.CompanyModel;
@@ -534,6 +535,40 @@ public class EmployeeService {
                 "name", manager.getName(),
                 "employeeId", manager.getEmployeeId()
             ))
+            .collect(Collectors.toList());
+    }
+
+    // Get All Employees by Company ID with additional details
+    public List<EmployeeDetailsDTO> getAllEmployeesByCompanyIdWithDetails(String companyId) {
+        List<EmployeeModel> employees = employeeRepository.findByCompanyId(companyId);
+        
+        return employees.stream()
+            .map(employee -> {
+                EmployeeDetailsDTO dto = new EmployeeDetailsDTO(employee);
+                
+                // Get department name from department service if available
+                // For now, using department ID as name
+                dto.setDepartmentName(employee.getDepartment());
+                
+                // Get designation name from designation service
+                try {
+                    Optional<DesignationModel> designation = Optional.ofNullable(designationService.getDesignationById(employee.getDesignation()));
+                    designation.ifPresent(d -> dto.setDesignationName(d.getName()));
+                    if (designation.isEmpty()) {
+                        dto.setDesignationName(employee.getDesignation());
+                    }
+                } catch (Exception e) {
+                    dto.setDesignationName(employee.getDesignation());
+                }
+                
+                // Get reporting manager name
+                if (employee.getReportingManager() != null && !employee.getReportingManager().isEmpty()) {
+                    employeeRepository.findByEmployeeId(employee.getReportingManager())
+                        .ifPresent(manager -> dto.setReportingManagerName(manager.getName()));
+                }
+                
+                return dto;
+            })
             .collect(Collectors.toList());
     }
 }
