@@ -1,12 +1,10 @@
-package com.medhir.rest.controller;
+package com.medhir.rest.employee;
 
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.medhir.rest.dto.UserCompanyDTO;
 import com.medhir.rest.dto.EmployeeDetailsDTO;
-import com.medhir.rest.employee.EmployeeModel;
-import com.medhir.rest.employee.EmployeeService;
 import com.medhir.rest.service.UserService;
 import com.medhir.rest.utils.GeneratedId;
 import jakarta.validation.ConstraintViolation;
@@ -100,15 +98,15 @@ public class EmployeeController {
         return ResponseEntity.ok(employeeService.getAllEmployeesMinimal());
     }
 
-    // Get All Employees by Company ID
-    @GetMapping("/hradmin/companies/{companyId}/employees")
-    public ResponseEntity<List<EmployeeModel>> getAllEmployeesByCompanyId(@PathVariable String companyId) {
-        List<EmployeeModel> employees = employeeService.getAllEmployeesByCompanyId(companyId);
-        return ResponseEntity.ok(employees);
-    }
+//    // Get All Employees by Company ID
+//    @GetMapping("/hradmin/companies/{companyId}/employees")
+//    public ResponseEntity<List<EmployeeModel>> getAllEmployeesByCompanyId(@PathVariable String companyId) {
+//        List<EmployeeModel> employees = employeeService.getAllEmployeesByCompanyId(companyId);
+//        return ResponseEntity.ok(employees);
+//    }
 
     // Get All Employees by Company ID with additional details
-    @GetMapping("/hradmin/companies/{companyId}/employees/details")
+    @GetMapping("/hradmin/companies/{companyId}/employees")
     public ResponseEntity<List<EmployeeDetailsDTO>> getAllEmployeesByCompanyIdWithDetails(@PathVariable String companyId) {
         return ResponseEntity.ok(employeeService.getAllEmployeesByCompanyIdWithDetails(companyId));
     }
