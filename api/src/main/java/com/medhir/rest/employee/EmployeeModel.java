@@ -1,5 +1,6 @@
 package com.medhir.rest.employee;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.medhir.rest.employeeUpdateRequest.EmployeeUpdateRequest;
 import jakarta.validation.Valid;
@@ -24,6 +25,7 @@ import java.util.Set;
 public class EmployeeModel {
 
     @Id
+    @JsonIgnore
     private String id;
 
     @NotBlank(message = "Employee Id cannot be empty")

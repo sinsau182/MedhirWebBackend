@@ -3,6 +3,7 @@ package com.medhir.rest.employee;
 import com.medhir.rest.dto.RegisterAdminRequest;
 import com.medhir.rest.dto.UserCompanyDTO;
 import com.medhir.rest.dto.EmployeeDetailsDTO;
+import com.medhir.rest.dto.ManagerEmployeeDTO;
 import com.medhir.rest.exception.DuplicateResourceException;
 import com.medhir.rest.exception.ResourceNotFoundException;
 import com.medhir.rest.model.CompanyModel;
@@ -137,24 +138,42 @@ public class EmployeeService {
         return employeeRepository.findByCompanyId(companyId);
     }
 
-    // Get Employee By EmployeeId and CompanyId
-    public Optional<EmployeeModel> getEmployeeById(String companyId, String employeeId){
-        return employeeRepository.findByCompanyIdAndEmployeeId(companyId, employeeId);
-    }
 
-    // Get Employee By EmployeeId (for backward compatibility)
+    // Get Employee By EmployeeId
     public Optional<EmployeeModel> getEmployeeById(String employeeId){
         return employeeRepository.findByEmployeeId(employeeId);
     }
 
-    // Get Employees by Company ID and Reporting Manager
-    public List<EmployeeModel> getEmployeesByCompanyIdAndReportingManager(String companyId, String reportingManager){
-        return employeeRepository.findByCompanyIdAndReportingManager(companyId, reportingManager);
-    }
 
-    // Get Employees by Reporting Manager (for backward compatibility)
-    public List<EmployeeModel> getEmployeesByReportingManager(String reportingManager){
-        return employeeRepository.findByReportingManager(reportingManager);
+    // Get Employees by Manager
+    public List<ManagerEmployeeDTO> getEmployeesByManager(String managerId){
+        List<EmployeeModel> employees = employeeRepository.findByReportingManager(managerId);
+        
+        return employees.stream()
+            .map(employee -> {
+                ManagerEmployeeDTO dto = new ManagerEmployeeDTO();
+                dto.setEmployeeId(employee.getEmployeeId());
+                dto.setName(employee.getName());
+                dto.setFathersName(employee.getFathersName());
+                dto.setPhone(employee.getPhone());
+                dto.setEmailOfficial(employee.getEmailOfficial());
+                dto.setJoiningDate(employee.getJoiningDate());
+                dto.setCurrentAddress(employee.getCurrentAddress());
+                
+                // Get designation name from designation service
+                try {
+                    Optional<DesignationModel> designation = Optional.ofNullable(designationService.getDesignationById(employee.getDesignation()));
+                    designation.ifPresent(d -> dto.setDesignationName(d.getName()));
+                    if (designation.isEmpty()) {
+                        dto.setDesignationName(employee.getDesignation());
+                    }
+                } catch (Exception e) {
+                    dto.setDesignationName(employee.getDesignation());
+                }
+                
+                return dto;
+            })
+            .collect(Collectors.toList());
     }
 
     // Delete Employee by Employee ID

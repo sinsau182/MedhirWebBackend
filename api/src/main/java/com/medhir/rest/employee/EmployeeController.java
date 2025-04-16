@@ -3,6 +3,7 @@ package com.medhir.rest.employee;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+import com.medhir.rest.dto.ManagerEmployeeDTO;
 import com.medhir.rest.dto.UserCompanyDTO;
 import com.medhir.rest.dto.EmployeeDetailsDTO;
 import com.medhir.rest.service.UserService;
@@ -111,15 +112,8 @@ public class EmployeeController {
         return ResponseEntity.ok(employeeService.getAllEmployeesByCompanyIdWithDetails(companyId));
     }
 
-    // Get Employee by Company ID and Employee ID
-    @GetMapping("/companies/{companyId}/employees/{employeeId}")
-    public ResponseEntity<Optional<EmployeeModel>> getEmployeeByCompanyAndEmployeeId(
-            @PathVariable String companyId,
-            @PathVariable String employeeId) {
-        return ResponseEntity.ok(employeeService.getEmployeeById(companyId, employeeId));
-    }
 
-    // Get Employee by Employee ID (for backward compatibility)
+    // Get Employee by Employee ID
     @GetMapping("/employee/id/{employeeId}")
     public ResponseEntity<Optional<EmployeeModel>> getEmployeeById(@PathVariable String employeeId){
         return ResponseEntity.ok(employeeService.getEmployeeById(employeeId));
@@ -165,26 +159,12 @@ public class EmployeeController {
         ));
     }
 
-    @GetMapping("/employees/managerId/{managerId}")
-    public ResponseEntity<List<EmployeeModel>> getEmployeesByManagerId(@PathVariable String managerId){
-        List<EmployeeModel> employees = employeeService.getEmployeesByReportingManager(managerId);
+    @GetMapping("/employees/manager/{managerId}")
+    public ResponseEntity<List<ManagerEmployeeDTO>> getEmployeesByManagerId(@PathVariable String managerId){
+        List<ManagerEmployeeDTO> employees = employeeService.getEmployeesByManager(managerId);
         return ResponseEntity.ok(employees);
     }
 
-    // Get Employees by Reporting Manager
-    @GetMapping("/employees/reporting-manager/{managerId}")
-    public ResponseEntity<List<EmployeeModel>> getEmployeesByReportingManager(
-            @PathVariable String managerId) {
-        return ResponseEntity.ok(employeeService.getEmployeesByReportingManager(managerId));
-    }
-
-    // Get Employees by Company ID and Reporting Manager (keeping for backward compatibility)
-    @GetMapping("/companies/{companyId}/employees/manager/{managerId}")
-    public ResponseEntity<List<EmployeeModel>> getEmployeesByCompanyIdAndReportingManager(
-            @PathVariable String companyId,
-            @PathVariable String managerId) {
-        return ResponseEntity.ok(employeeService.getEmployeesByCompanyIdAndReportingManager(companyId, managerId));
-    }
 
     // Delete Employee by Employee ID
     @DeleteMapping("/hradmin/employees/{employeeId}")
