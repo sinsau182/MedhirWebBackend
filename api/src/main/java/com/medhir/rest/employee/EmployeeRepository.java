@@ -16,4 +16,5 @@ public interface EmployeeRepository extends MongoRepository<EmployeeModel, Strin
     Optional<EmployeeModel> findByCompanyIdAndEmployeeId(String companyId, String employeeId);
     List<EmployeeModel> findByCompanyId(String companyId);
     List<EmployeeModel> findByCompanyIdAndReportingManager(String companyId, String reportingManager);
+    List<EmployeeModel> findByDepartmentAndDesignationIn(String department, List<String> designations);
 }

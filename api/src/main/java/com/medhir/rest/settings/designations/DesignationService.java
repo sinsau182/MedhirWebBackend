@@ -1,6 +1,7 @@
 package com.medhir.rest.settings.designations;
 
 import com.medhir.rest.exception.BadRequestException;
+import com.medhir.rest.exception.DuplicateResourceException;
 import com.medhir.rest.exception.ResourceNotFoundException;
 import com.medhir.rest.settings.department.DepartmentService;
 import com.medhir.rest.utils.GeneratedId;
@@ -27,8 +28,8 @@ public class DesignationService {
     private DepartmentService departmentService;
 
     public DesignationModel createDesignation(DesignationModel designation) {
-        if (designationRepository.existsByName(designation.getName())) {
-            throw new BadRequestException("Designation with name " + designation.getName() + " already exists");
+        if (designationRepository.existsByNameAndDepartment(designation.getName(), designation.getDepartment())) {
+            throw new DuplicateResourceException("Designation with name " + designation.getName() + " already exists in this department");
         }
 
         // Verify leave policy exists
@@ -71,8 +72,8 @@ public class DesignationService {
         // Check name uniqueness only if name is being updated
         if (designation.getName() != null && !designation.getName().isEmpty() &&
                 !existingDesignation.getName().equals(designation.getName()) &&
-                designationRepository.existsByName(designation.getName())) {
-            throw new BadRequestException("Designation with name " + designation.getName() + " already exists");
+                designationRepository.existsByNameAndDepartment(designation.getName(), designation.getDepartment())) {
+            throw new DuplicateResourceException("Designation with name " + designation.getName() + " already exists in this department");
         }
 
         // Update only the fields that are provided in the request

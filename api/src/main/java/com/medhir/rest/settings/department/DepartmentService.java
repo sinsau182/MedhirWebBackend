@@ -1,6 +1,7 @@
 package com.medhir.rest.settings.department;
 
 import com.medhir.rest.exception.BadRequestException;
+import com.medhir.rest.exception.DuplicateResourceException;
 import com.medhir.rest.exception.ResourceNotFoundException;
 import com.medhir.rest.service.CompanyService;
 import com.medhir.rest.settings.leaveSettings.leavepolicy.LeavePolicyService;
@@ -31,8 +32,8 @@ public class DepartmentService {
         companyService.getCompanyById(department.getCompanyId())
             .orElseThrow(() -> new ResourceNotFoundException("Company not found with id: " + department.getCompanyId()));
 
-        if (departmentRepository.existsByName(department.getName())) {
-            throw new BadRequestException("Department with name " + department.getName() + " already exists");
+        if (departmentRepository.existsByNameAndCompanyId(department.getName(), department.getCompanyId())) {
+            throw new DuplicateResourceException("Department with name " + department.getName() + " already exists in this company");
         }
 
         // Verify leave policy exists
@@ -79,8 +80,8 @@ public class DepartmentService {
         }
         
         if (!existingDepartment.getName().equals(department.getName()) && 
-            departmentRepository.existsByName(department.getName())) {
-            throw new BadRequestException("Department with name " + department.getName() + " already exists");
+            departmentRepository.existsByNameAndCompanyId(department.getName(), department.getCompanyId())) {
+            throw new DuplicateResourceException("Department with name " + department.getName() + " already exists in this company");
         }
 
         // Verify leave policy exists

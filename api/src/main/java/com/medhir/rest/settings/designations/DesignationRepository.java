@@ -13,4 +13,5 @@ public interface DesignationRepository extends MongoRepository<DesignationModel,
     Optional<DesignationModel> findByDesignationId(String designationId);
     boolean existsByDesignationId(String designationId);
     List<DesignationModel> findByDepartment(String department);
+    boolean existsByNameAndDepartment(String name, String department);
 }

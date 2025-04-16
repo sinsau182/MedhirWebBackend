@@ -9,6 +9,8 @@ import com.medhir.rest.model.ModuleModel;
 import com.medhir.rest.repository.ModuleRepository;
 import com.medhir.rest.service.CompanyService;
 import com.medhir.rest.service.MinioService;
+import com.medhir.rest.settings.designations.DesignationModel;
+import com.medhir.rest.settings.designations.DesignationService;
 import com.medhir.rest.utils.GeneratedId;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -42,6 +44,8 @@ public class EmployeeService {
     private CompanyService companyService;
     @Autowired
     ModuleRepository moduleRepository;
+    @Autowired
+    private DesignationService designationService;
 
     //Create Employee
     public EmployeeModel createEmployee(EmployeeModel employee,
@@ -113,6 +117,17 @@ public class EmployeeService {
         return employeeRepository.findAll();
     }
 
+    // Get All Employees with minimal fields (name and employeeId)
+    public List<Map<String, String>> getAllEmployeesMinimal() {
+        List<EmployeeModel> employees = employeeRepository.findAll();
+        return employees.stream()
+            .map(employee -> Map.of(
+                "name", employee.getName(),
+                "employeeId", employee.getEmployeeId()
+            ))
+            .collect(Collectors.toList());
+    }
+
     // Get All Employees by Company ID
     public List<EmployeeModel> getAllEmployeesByCompanyId(String companyId) {
         return employeeRepository.findByCompanyId(companyId);
@@ -138,11 +153,11 @@ public class EmployeeService {
         return employeeRepository.findByReportingManager(reportingManager);
     }
 
-    // Delete Employee by Company ID and Employee ID
-    public void deleteEmployee(String companyId, String employeeId) {
-        Optional<EmployeeModel> employeeOpt = employeeRepository.findByCompanyIdAndEmployeeId(companyId, employeeId);
+    // Delete Employee by Employee ID
+    public void deleteEmployee(String employeeId) {
+        Optional<EmployeeModel> employeeOpt = employeeRepository.findByEmployeeId(employeeId);
         if (employeeOpt.isEmpty()) {
-            throw new ResourceNotFoundException("Employee not found with company ID: " + companyId + " and employee ID: " + employeeId);
+            throw new ResourceNotFoundException("Employee not found with ID: " + employeeId);
         }
         
         // Delete the employee
@@ -150,7 +165,7 @@ public class EmployeeService {
     }
 
     // Update Employee
-    public EmployeeModel updateEmployee(String companyId, String employeeId, EmployeeModel updatedEmployee,
+    public EmployeeModel updateEmployee(String employeeId, EmployeeModel updatedEmployee,
                                         MultipartFile profileImage,
                                         MultipartFile aadharImage,
                                         MultipartFile panImage,
@@ -158,7 +173,7 @@ public class EmployeeService {
                                         MultipartFile drivingLicenseImage,
                                         MultipartFile voterIdImage,
                                         MultipartFile passbookImage) {
-        return employeeRepository.findByCompanyIdAndEmployeeId(companyId, employeeId).map(existingEmployee -> {
+        return employeeRepository.findByEmployeeId(employeeId).map(existingEmployee -> {
 
             Optional<EmployeeModel> employeeIDExists = employeeRepository.findByEmployeeId(updatedEmployee.getEmployeeId());
             if(employeeIDExists.isPresent() && !employeeIDExists.get().getEmployeeId().equals(employeeId)){
@@ -496,5 +511,29 @@ public class EmployeeService {
                     }
                 })
                 .collect(Collectors.toList());
+    }
+
+    public List<Map<String, String>> getManagersByDepartment(String departmentId) {
+        // Get all designations in the department that have isManager=true
+        List<DesignationModel> managerDesignations = designationService.getDesignationsByDepartment(departmentId)
+            .stream()
+            .filter(DesignationModel::isManager)
+            .collect(Collectors.toList());
+
+        // Get all designation IDs
+        List<String> managerDesignationIds = managerDesignations.stream()
+            .map(DesignationModel::getDesignationId)
+            .collect(Collectors.toList());
+
+        // Get all employees with these designations
+        List<EmployeeModel> managers = employeeRepository.findByDepartmentAndDesignationIn(departmentId, managerDesignationIds);
+
+        // Map to required format (name and employeeId)
+        return managers.stream()
+            .map(manager -> Map.of(
+                "name", manager.getName(),
+                "employeeId", manager.getEmployeeId()
+            ))
+            .collect(Collectors.toList());
     }
 }

@@ -13,4 +13,5 @@ public interface DepartmentRepository extends MongoRepository<DepartmentModel, S
     Optional<DepartmentModel> findByDepartmentId(String departmentId);
     boolean existsByDepartmentId(String departmentId);
     List<DepartmentModel> findByCompanyId(String companyId);
+    boolean existsByNameAndCompanyId(String name, String companyId);
 } 
