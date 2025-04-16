@@ -235,6 +235,7 @@ public class EmployeeService {
             existingEmployee.setPermanentAddress(updatedEmployee.getPermanentAddress());
             existingEmployee.setCurrentAddress(updatedEmployee.getCurrentAddress());
             existingEmployee.setSalaryDetails(updatedEmployee.getSalaryDetails());
+            existingEmployee.setJoiningDate(updatedEmployee.getJoiningDate());
 
             // Update Bank Details
             if (updatedEmployee.getBankDetails() != null) {
