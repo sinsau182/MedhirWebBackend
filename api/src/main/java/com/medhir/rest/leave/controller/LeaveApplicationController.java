@@ -63,7 +63,7 @@ public class LeaveApplicationController {
     @GetMapping("/status/{companyId}/{status}")
     public ResponseEntity<?> getLeavesByStatus(@PathVariable String companyId, @PathVariable String status) {
         try {
-            List<LeaveModel> leaves = leaveApplicationService.getLeavesByStatus(companyId, status);
+            List<LeaveWithEmployeeDetails> leaves = leaveApplicationService.getLeavesByStatus(companyId, status);
             return ResponseEntity.ok(Map.of(
                     "count", leaves.size(),
                     "leaves", leaves

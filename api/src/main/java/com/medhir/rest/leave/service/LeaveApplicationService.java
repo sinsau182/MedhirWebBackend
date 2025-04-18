@@ -22,6 +22,7 @@ import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 @Service
 public class LeaveApplicationService {
@@ -215,7 +216,7 @@ public class LeaveApplicationService {
                 .orElseThrow(() -> new ResourceNotFoundException("Leave not found with ID: " + leaveId));
     }
 
-    public List<LeaveModel> getLeavesByStatus(String companyId, String status) {
+    public List<LeaveWithEmployeeDetails> getLeavesByStatus(String companyId, String status) {
         // Validate company exists
         companyService.getCompanyById(companyId)
             .orElseThrow(() -> new ResourceNotFoundException("Company not found with id: " + companyId));
@@ -223,41 +224,45 @@ public class LeaveApplicationService {
         if (!"Pending".equals(status) && !"Approved".equals(status) && !"Rejected".equals(status)) {
             throw new IllegalArgumentException("Status must be either 'Pending', 'Approved', or 'Rejected'");
         }
-        return leaveRepository.findByCompanyIdAndStatus(companyId, status);
-    }
 
-//    public List<LeaveWithEmployeeDetails> getLeavesWithEmployeeDetailsByStatus(String status) {
-//        List<LeaveModel> leaves = getLeavesByStatus(status);
-//        return leaves.stream()
-//                .map(this::enrichLeaveWithEmployeeDetails)
-//                .collect(java.util.stream.Collectors.toList());
-//    }
+        List<LeaveModel> leaves = leaveRepository.findByCompanyIdAndStatus(companyId, status);
+        
+        return leaves.stream().map(leave -> {
+            LeaveWithEmployeeDetails leaveWithDetails = new LeaveWithEmployeeDetails();
+            
+            // Copy all fields from LeaveModel to LeaveWithEmployeeDetails
+            leaveWithDetails.setId(leave.getId());
+            leaveWithDetails.setLeaveId(leave.getLeaveId());
+            leaveWithDetails.setEmployeeId(leave.getEmployeeId());
+            leaveWithDetails.setCompanyId(leave.getCompanyId());
+            leaveWithDetails.setLeaveName(leave.getLeaveName());
+            leaveWithDetails.setLeaveType(leave.getLeaveType());
+            leaveWithDetails.setStartDate(leave.getStartDate());
+            leaveWithDetails.setEndDate(leave.getEndDate());
+            leaveWithDetails.setShiftType(leave.getShiftType());
+            leaveWithDetails.setReason(leave.getReason());
+            leaveWithDetails.setStatus(leave.getStatus());
+            leaveWithDetails.setRemarks(leave.getRemarks());
+            leaveWithDetails.setCreatedAt(leave.getCreatedAt());
 
-    private LeaveWithEmployeeDetails enrichLeaveWithEmployeeDetails(LeaveModel leave) {
-        LeaveWithEmployeeDetails enrichedLeave = new LeaveWithEmployeeDetails();
-        // Copy all fields from the original leave
-        enrichedLeave.setId(leave.getId());
-        enrichedLeave.setLeaveId(leave.getLeaveId());
-        enrichedLeave.setEmployeeId(leave.getEmployeeId());
-        enrichedLeave.setLeaveName(leave.getLeaveName());
-        enrichedLeave.setLeaveType(leave.getLeaveType());
-        enrichedLeave.setStartDate(leave.getStartDate());
-        enrichedLeave.setEndDate(leave.getEndDate());
-        enrichedLeave.setShiftType(leave.getShiftType());
-        enrichedLeave.setReason(leave.getReason());
-        enrichedLeave.setStatus(leave.getStatus());
-        enrichedLeave.setRemarks(leave.getRemarks());
-        enrichedLeave.setCreatedAt(leave.getCreatedAt());
+            // Get employee details
+            Optional<com.medhir.rest.employee.EmployeeModel> employeeOpt = employeeService.getEmployeeById(leave.getEmployeeId());
+            if (employeeOpt.isPresent()) {
+                com.medhir.rest.employee.EmployeeModel employee = employeeOpt.get();
+                leaveWithDetails.setEmployeeName(employee.getName());
+                
+                // Get department name
+                try {
+                    if (employee.getDepartment() != null && !employee.getDepartment().isEmpty()) {
+                        leaveWithDetails.setDepartment(departmentService.getDepartmentById(employee.getDepartment()).getName());
+                    }
+                } catch (Exception e) {
+                    leaveWithDetails.setDepartment(employee.getDepartment());
+                }
+            }
 
-        // Add employee details
-        Optional<com.medhir.rest.employee.EmployeeModel> employeeOpt = employeeService.getEmployeeById(leave.getEmployeeId());
-        if (employeeOpt.isPresent()) {
-            com.medhir.rest.employee.EmployeeModel employee = employeeOpt.get();
-            enrichedLeave.setEmployeeName(employee.getName());
-            enrichedLeave.setDepartment(employee.getDepartment());
-        }
-
-        return enrichedLeave;
+            return leaveWithDetails;
+        }).collect(Collectors.toList());
     }
 
     private String markPresentWithApprovedLeaveInAttendance(String employeeId, String leaveType, LocalDate leaveDate, LocalDate endDate, String reason) {
