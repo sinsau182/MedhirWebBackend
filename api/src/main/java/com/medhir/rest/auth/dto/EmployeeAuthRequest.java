@@ -1,19 +1,15 @@
-package com.medhir.rest.dto;
+package com.medhir.rest.auth.dto;
 
-import com.medhir.rest.model.Role;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
-import java.util.Set;
-
 @Getter
 @Setter
 @AllArgsConstructor
 @NoArgsConstructor
-public class RegisterRequest {
+public class EmployeeAuthRequest {
     private String email;
     private String password;
-    private Set<Role> roles;
-}
+} 

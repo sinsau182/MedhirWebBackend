@@ -35,6 +35,16 @@ public class JwtUtil {
                 .compact();
     }
 
+    public String generateTokenWithStringRoles(String subject, Set<String> roles) {
+        return Jwts.builder()
+                .setSubject(subject)
+                .claim("roles", roles)
+                .setIssuedAt(new Date())
+                .setExpiration(new Date(System.currentTimeMillis() + expirationTime))
+                .signWith(getSigningKey(), SignatureAlgorithm.HS256)
+                .compact();
+    }
+
     public String extractEmail(String token) {
         return Jwts.parserBuilder().setSigningKey(getSigningKey()).build()
                 .parseClaimsJws(token).getBody().getSubject();

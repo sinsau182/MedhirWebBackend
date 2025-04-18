@@ -94,7 +94,7 @@ public class EmployeeModel {
     @Valid
     private EmployeeUpdateRequest pendingUpdateRequest; // Reference to EmployeeUpdateRequest which stores the pending updates
 
-    // Nested class for ID Proofs
+
     @Getter
     @Setter
     public static class IdProofs {
@@ -124,7 +124,7 @@ public class EmployeeModel {
         private String voterIdImgUrl="";
     }
 
-    // Nested class for Bank Details
+
     @Getter
     @Setter
     public static class BankDetails {
@@ -146,7 +146,7 @@ public class EmployeeModel {
         private String passbookImgUrl;
     }
 
-    // Nested class for Salary Details
+
     @Getter
     @Setter
     public static class SalaryDetails {

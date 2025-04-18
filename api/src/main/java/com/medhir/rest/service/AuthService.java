@@ -35,13 +35,15 @@ public class AuthService {
         UserAccount user = UserAccount.builder()
                 .email(request.getEmail())
                 .password(passwordEncoder.encode(request.getPassword()))
-//                .roles(request.getRoles()) // Set<Role> directly stored
+                .roles(request.getRoles()) // Set<Role> directly stored
                 .build();
 
         userAccountRepository.save(user);
 
         return "User registered successfully!";
     }
+
+
 
     public AuthResponse login(AuthRequest request) {
         Optional<UserAccount> userOpt = userAccountRepository.findByEmail(request.getEmail());

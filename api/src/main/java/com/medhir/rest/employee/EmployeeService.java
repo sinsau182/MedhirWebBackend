@@ -1,5 +1,6 @@
 package com.medhir.rest.employee;
 
+import com.medhir.rest.auth.service.EmployeeAuthService;
 import com.medhir.rest.dto.RegisterAdminRequest;
 import com.medhir.rest.dto.UserCompanyDTO;
 import com.medhir.rest.dto.CompanyEmployeeDTO;
@@ -51,6 +52,8 @@ public class EmployeeService {
     private DesignationService designationService;
     @Autowired
     private DepartmentService departmentService;
+    @Autowired
+    private EmployeeAuthService employeeAuthService;
 
     //Create Employee
     public EmployeeModel createEmployee(EmployeeModel employee,
@@ -105,9 +108,12 @@ public class EmployeeService {
 
         EmployeeModel savedEmployee = employeeRepository.save(employee);
 
-        // Call Auth Service to Register User for login access
-        registerUserInAuthService(savedEmployee);
-
+        // Register employee for login with email
+        employeeAuthService.registerEmployee(
+            savedEmployee.getEmployeeId(),
+            savedEmployee.getEmailPersonal(),
+            savedEmployee.getPhone()
+        );
 
         // call Attendance Service to register user for face verification
         registerUserInAttendanceService(savedEmployee);
@@ -489,9 +495,13 @@ public class EmployeeService {
         
         // Save the employee
         EmployeeModel savedEmployee = employeeRepository.save(employee);
-        
-        // Register user in auth service
-        registerUserInAuthService(savedEmployee);
+
+        // Register employee for login with email
+        employeeAuthService.registerEmployee(
+                savedEmployee.getEmployeeId(),
+                savedEmployee.getEmailPersonal(),
+                savedEmployee.getPhone()
+        );
         
         // Register user in attendance service
         registerUserInAttendanceService(savedEmployee);
