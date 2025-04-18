@@ -599,4 +599,38 @@ public class EmployeeService {
             })
             .collect(Collectors.toList());
     }
+
+
+    public EmployeeModel updateEmployeeRole(String employeeId, List<String> roles, String operation) {
+        if (roles == null || roles.isEmpty()) {
+            throw new IllegalArgumentException("Roles list cannot be null or empty");
+        }
+
+        // Get the employee
+        EmployeeModel employee = employeeRepository.findByEmployeeId(employeeId)
+                .orElseThrow(() -> new ResourceNotFoundException("Employee not found with ID: " + employeeId));
+
+        // Get current roles or initialize
+        Set<String> currentRoles = Optional.ofNullable(employee.getRoles())
+                .map(HashSet::new)
+                .orElseGet(HashSet::new);
+
+        // Normalize operation
+        String op = operation == null ? "" : operation.trim().toUpperCase();
+
+        switch (op) {
+            case "ADD":
+                currentRoles.addAll(roles);
+                break;
+            case "REMOVE":
+                currentRoles.removeAll(roles);
+                break;
+            default:
+                throw new IllegalArgumentException("Invalid operation. Must be 'ADD' or 'REMOVE'");
+        }
+
+        employee.setRoles(currentRoles);
+        return employeeRepository.save(employee);
+    }
+
 }

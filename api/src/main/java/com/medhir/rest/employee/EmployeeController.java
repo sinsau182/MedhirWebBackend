@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.medhir.rest.dto.ManagerEmployeeDTO;
+import com.medhir.rest.dto.UpdateEmployeeRoles;
 import com.medhir.rest.dto.UserCompanyDTO;
 import com.medhir.rest.dto.CompanyEmployeeDTO;
 import com.medhir.rest.service.UserService;
@@ -179,4 +180,21 @@ public class EmployeeController {
             @PathVariable String departmentId) {
         return ResponseEntity.ok(employeeService.getManagersByDepartment(departmentId));
     }
+
+    @PutMapping("/hradmin/employees/{employeeId}/roles")
+    public ResponseEntity<Map<String, Object>> updateEmployeeRole(
+            @PathVariable String employeeId,
+            @RequestBody UpdateEmployeeRoles request) {
+
+        EmployeeModel updatedEmployee = employeeService.updateEmployeeRole(
+                employeeId,
+                request.getRoles(),
+                request.getOperation()
+        );
+
+        return ResponseEntity.ok(Map.of(
+                "message", "Employee roles updated successfully"
+        ));
+    }
+
 }
