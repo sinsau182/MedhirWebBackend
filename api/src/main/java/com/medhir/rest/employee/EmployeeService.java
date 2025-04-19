@@ -36,8 +36,6 @@ public class EmployeeService {
     @Value("${attendance.service.url}")
     String attendanceServiceUrl;
 
-
-
     @Autowired
     private EmployeeRepository employeeRepository;
     @Autowired
@@ -105,15 +103,21 @@ public class EmployeeService {
             employee.getBankDetails().setPassbookImgUrl(minioService.uploadDocumentsImg(passbookImage, employee.getEmployeeId()));
         }
 
-
+        employee.setEmployeeId(generateEmployeeId(employee.getCompanyId()));
         EmployeeModel savedEmployee = employeeRepository.save(employee);
 
-        // Register employee for login with email
-        employeeAuthService.registerEmployee(
-            savedEmployee.getEmployeeId(),
-            savedEmployee.getEmailPersonal(),
-            savedEmployee.getPhone()
-        );
+        // Register employee for login with email and phone number as password
+        if (employee.getPhone() != null && !employee.getPhone().isEmpty() &&
+                employee.getEmailPersonal() != null && !employee.getEmailPersonal().isEmpty()) {
+
+            employeeAuthService.registerEmployee(
+                    savedEmployee.getEmployeeId(),
+                    savedEmployee.getEmailPersonal(),
+                    savedEmployee.getPhone()
+            );
+        }
+
+
 
         // call Attendance Service to register user for face verification
         registerUserInAttendanceService(savedEmployee);

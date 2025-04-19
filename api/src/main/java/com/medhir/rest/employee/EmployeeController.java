@@ -82,7 +82,8 @@ public class EmployeeController {
                 employee, profileImage, aadharImage, panImage, passportImage, drivingLicenseImage, voterIdImage, passbookImage);
 
         return ResponseEntity.ok(Map.of(
-                "message", "Created Employee Successfully"
+                "message", "Created Employee Successfully",
+                "employeeId",savedEmployee.getEmployeeId()
         ));
     }
 

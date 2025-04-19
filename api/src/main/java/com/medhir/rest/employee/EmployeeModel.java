@@ -28,7 +28,7 @@ public class EmployeeModel {
     @JsonIgnore
     private String id;
 
-    @NotBlank(message = "Employee Id cannot be empty")
+//    @NotBlank(message = "Employee Id cannot be empty")
     @Indexed(unique = true)
     private String employeeId;
     
