@@ -5,6 +5,7 @@ import com.medhir.rest.dto.RegisterAdminRequest;
 import com.medhir.rest.dto.UserCompanyDTO;
 import com.medhir.rest.dto.CompanyEmployeeDTO;
 import com.medhir.rest.dto.ManagerEmployeeDTO;
+import com.medhir.rest.employee.dto.EmployeeAttendanceDetailsDTO;
 import com.medhir.rest.exception.DuplicateResourceException;
 import com.medhir.rest.exception.ResourceNotFoundException;
 import com.medhir.rest.model.CompanyModel;
@@ -645,6 +646,20 @@ public class EmployeeService {
 
         employee.setRoles(currentRoles);
         return employeeRepository.save(employee);
+    }
+
+
+    public EmployeeAttendanceDetailsDTO getEmployeeAttendanceDetails(String employeeId) {
+        EmployeeModel employee = employeeRepository.findByEmployeeId(employeeId)
+                .orElseThrow(() -> new ResourceNotFoundException("Employee not found with ID: " + employeeId));
+
+        EmployeeAttendanceDetailsDTO dto = new EmployeeAttendanceDetailsDTO();
+        dto.setName(employee.getName());
+        dto.setEmployeeImgUrl(employee.getEmployeeImgUrl());
+        dto.setJoiningDate(employee.getJoiningDate());
+        dto.setWeeklyOffs(employee.getWeeklyOffs());
+
+        return dto;
     }
 
 }

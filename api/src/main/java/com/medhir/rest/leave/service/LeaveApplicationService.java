@@ -14,6 +14,9 @@ import com.medhir.rest.settings.leaveSettings.leavepolicy.LeavePolicyService;
 import com.medhir.rest.service.CompanyService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
@@ -53,8 +56,8 @@ public class LeaveApplicationService {
 
     private final RestTemplate restTemplate = new RestTemplate();
 
-    @Value("${leave.service.url}")
-    private String APPLY_LEAVE_URL;
+    @Value("${attendance.service.url}")
+    private String ATTENDANCE_SERVICE_URL;
 
     public LeaveModel applyLeave(LeaveModel request) {
         // Validate employee exists and get their details
@@ -169,10 +172,10 @@ public class LeaveApplicationService {
             // Mark days with available leave as present with approved leave
             markPresentWithApprovedLeaveInAttendance(
                     leave.getEmployeeId(),
-                    leave.getLeaveType(),
                     leaveStartDate,
                     leaveEndDate,
-                    leave.getReason()
+                    leave.getReason(),
+                    leave.getLeaveId()
             );
 
             // If there are days to mark as LOP
@@ -180,20 +183,20 @@ public class LeaveApplicationService {
                 LocalDate lopStartDate = leaveEndDate.plusDays(1);
                 markApprovedLOPInAttendance(
                         leave.getEmployeeId(),
-                        leave.getLeaveType(),
                         lopStartDate,
                         leave.getEndDate(),
-                        leave.getReason()
+                        leave.getReason(),
+                        leave.getLeaveId()
                 );
             }
         } else {
             // All days are LOP
             markApprovedLOPInAttendance(
                     leave.getEmployeeId(),
-                    leave.getLeaveType(),
                     leave.getStartDate(),
                     leave.getEndDate(),
-                    leave.getReason()
+                    leave.getReason(),
+                    leave.getLeaveId()
             );
         }
     }
@@ -265,30 +268,62 @@ public class LeaveApplicationService {
         }).collect(Collectors.toList());
     }
 
-    private String markPresentWithApprovedLeaveInAttendance(String employeeId, String leaveType, LocalDate leaveDate, LocalDate endDate, String reason) {
+    private String markPresentWithApprovedLeaveInAttendance(String employeeId, LocalDate leaveDate, LocalDate endDate, String reason, String leaveId) {
         try {
-            String url = APPLY_LEAVE_URL + "/markPresentWithLeave"+"?employeeId=" + employeeId +
-                    "&leaveType=" + leaveType +
-                    "&startDate=" + leaveDate +
-                    "&endDate=" + endDate +
-                    "&reason=" + reason;
+            // Create list of dates between start and end date
+            List<LocalDate> dates = leaveDate.datesUntil(endDate.plusDays(1)).collect(Collectors.toList());
+            
+            // Convert dates to string array
+            String datesJson = dates.stream()
+                .map(date -> "\"" + date + "\"")
+                .collect(Collectors.joining(",", "[", "]"));
 
-            ResponseEntity<String> response = restTemplate.postForEntity(url, null, String.class);
+            String url = ATTENDANCE_SERVICE_URL + "/mark-bulk";
+            
+            // Create request body
+            String requestBody = String.format(
+                "{\"employeeId\":\"%s\",\"status\":\"Leave\",\"dates\":%s,\"leaveId\":\"%s\"}",
+                employeeId,
+                datesJson,
+                leaveId
+            );
+
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.APPLICATION_JSON);
+            HttpEntity<String> request = new HttpEntity<>(requestBody, headers);
+
+            ResponseEntity<String> response = restTemplate.postForEntity(url, request, String.class);
             return response.getBody();
         } catch (Exception e) {
             return "Error while applying leave: " + e.getMessage();
         }
     }
 
-    private String markApprovedLOPInAttendance(String employeeId, String leaveType, LocalDate leaveDate, LocalDate endDate, String reason) {
+    private String markApprovedLOPInAttendance(String employeeId, LocalDate leaveDate, LocalDate endDate, String reason, String leaveId) {
         try {
-            String url = APPLY_LEAVE_URL +"/markApprovedLOP"+ "?employeeId=" + employeeId +
-                    "&leaveType=" + leaveType +
-                    "&startDate=" + leaveDate +
-                    "&endDate=" + endDate +
-                    "&reason=" + reason;
+            // Create list of dates between start and end date
+            List<LocalDate> dates = leaveDate.datesUntil(endDate.plusDays(1)).collect(Collectors.toList());
+            
+            // Convert dates to string array
+            String datesJson = dates.stream()
+                .map(date -> "\"" + date + "\"")
+                .collect(Collectors.joining(",", "[", "]"));
 
-            ResponseEntity<String> response = restTemplate.postForEntity(url, null, String.class);
+            String url = ATTENDANCE_SERVICE_URL + "/mark-bulk";
+            
+            // Create request body
+            String requestBody = String.format(
+                "{\"employeeId\":\"%s\",\"status\":\"LOP\",\"dates\":%s,\"leaveId\":\"%s\"}",
+                employeeId,
+                datesJson,
+                leaveId
+            );
+
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.APPLICATION_JSON);
+            HttpEntity<String> request = new HttpEntity<>(requestBody, headers);
+
+            ResponseEntity<String> response = restTemplate.postForEntity(url, request, String.class);
             return response.getBody();
         } catch (Exception e) {
             return "Error while applying leave: " + e.getMessage();

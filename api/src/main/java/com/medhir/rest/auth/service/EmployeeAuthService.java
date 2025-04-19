@@ -6,6 +6,7 @@ import com.medhir.rest.auth.repository.EmployeeAuthRepository;
 import com.medhir.rest.config.JwtUtil;
 import com.medhir.rest.employee.EmployeeModel;
 import com.medhir.rest.employee.EmployeeRepository;
+import com.medhir.rest.exception.DuplicateResourceException;
 import com.medhir.rest.exception.ResourceNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
@@ -24,11 +25,11 @@ public class EmployeeAuthService {
     private final JwtUtil jwtUtil;
     private final BCryptPasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
 
-    public EmployeeAuth registerEmployee(String employeeId, String email,String phone) {
+    public EmployeeAuth registerEmployee(String employeeId, String email, String phone) {
         // Check if employee already registered
         if (employeeAuthRepository.findByEmployeeId(employeeId).isPresent() ||
             employeeAuthRepository.findByEmail(email).isPresent()) {
-            throw new ResourceNotFoundException("Employee already registered");
+            throw new DuplicateResourceException("Employee already registered");
         }
 
         EmployeeAuth employeeAuth = new EmployeeAuth();
@@ -36,6 +37,19 @@ public class EmployeeAuthService {
         employeeAuth.setEmail(email);
         employeeAuth.setPassword(passwordEncoder.encode(phone)); // Use phone number as password
 
+        return employeeAuthRepository.save(employeeAuth);
+    }
+
+    public EmployeeAuth updatePassword(String employeeId, String oldPassword, String newPassword) {
+        EmployeeAuth employeeAuth = employeeAuthRepository.findByEmployeeId(employeeId)
+                .orElseThrow(() -> new ResourceNotFoundException("Employee not found"));
+
+        // Verify old password
+        if (!passwordEncoder.matches(oldPassword, employeeAuth.getPassword())) {
+            throw new ResourceNotFoundException("Invalid old password");
+        }
+
+        employeeAuth.setPassword(passwordEncoder.encode(newPassword));
         return employeeAuthRepository.save(employeeAuth);
     }
 

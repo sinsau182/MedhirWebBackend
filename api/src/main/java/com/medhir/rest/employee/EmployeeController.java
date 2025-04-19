@@ -7,6 +7,7 @@ import com.medhir.rest.dto.ManagerEmployeeDTO;
 import com.medhir.rest.dto.UpdateEmployeeRoles;
 import com.medhir.rest.dto.UserCompanyDTO;
 import com.medhir.rest.dto.CompanyEmployeeDTO;
+import com.medhir.rest.employee.dto.EmployeeAttendanceDetailsDTO;
 import com.medhir.rest.service.UserService;
 import com.medhir.rest.utils.GeneratedId;
 import jakarta.validation.ConstraintViolation;
@@ -196,6 +197,12 @@ public class EmployeeController {
         return ResponseEntity.ok(Map.of(
                 "message", "Employee roles updated successfully"
         ));
+    }
+
+
+    @GetMapping("/employee/{employeeId}/attendance-details")
+    public ResponseEntity<EmployeeAttendanceDetailsDTO> getEmployeeAttendanceDetails(@PathVariable String employeeId) {
+        return ResponseEntity.ok(employeeService.getEmployeeAttendanceDetails(employeeId));
     }
 
 }
