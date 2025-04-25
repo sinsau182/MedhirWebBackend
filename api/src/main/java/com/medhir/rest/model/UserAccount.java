@@ -20,6 +20,8 @@ public class UserAccount {
     @Id
     private String id;
 
+    private String employeeId;
+
     @Indexed(unique = true)
     private String email; //Email should be unique
 

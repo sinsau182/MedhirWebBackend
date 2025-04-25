@@ -32,32 +32,45 @@ public class SecurityConfig {
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
-        http.cors(c -> c.configurationSource(corsConfigurationSource()))
+        http
+                .cors(c -> c.configurationSource(corsConfigurationSource()))
                 .csrf(csrf -> csrf.disable())
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-                .authorizeHttpRequests(auth -> auth.requestMatchers("/auth/**")
-                        .permitAll()
-                        .requestMatchers("/hradmin/**")
-                        .hasAuthority("ROLE_HRADMIN")
-                        .requestMatchers("/superadmin/**")
-                        .hasAuthority("ROLE_SUPERADMIN")
-                        .anyRequest()
-                        .authenticated())
-                .exceptionHandling(
-                        exception -> exception
-                                .authenticationEntryPoint(authenticationEntryPoint()) // Handle 401
-                                .accessDeniedHandler(accessDeniedHandler()) // Handle 403
-                        )
+                .authorizeHttpRequests(auth -> auth
+                        // Publicly accessible endpoints
+                        .requestMatchers(
+                                "/auth/**",
+                                "/employee/id/*",
+                                "/employee/update-request",
+                                "/payslip/generate/**",
+                                "/employee/{employeeId}/attendance-details"
+                        ).permitAll()
+
+                        // Only HR Admin can access /hradmin/**
+                        .requestMatchers("/hradmin/**").hasAnyAuthority("ROLE_HRADMIN", "ROLE_SUPERADMIN")
+
+                        // Only Super Admin can access /superadmin/**
+                        .requestMatchers("/superadmin/**").hasAuthority("ROLE_SUPERADMIN")
+
+                        // All other routes can be accessed by HR or Super Admin
+                        .anyRequest().hasAnyAuthority("ROLE_HRADMIN", "ROLE_SUPERADMIN")
+                )
+                .exceptionHandling(exception -> exception
+                        .authenticationEntryPoint(authenticationEntryPoint()) // 401 handler
+                        .accessDeniedHandler(accessDeniedHandler())           // 403 handler
+                )
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
     }
 
+
+
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration config = new CorsConfiguration();
         config.setAllowedOrigins(
-                List.of("http://localhost:3000", "http://192.168.0.200:3000", "*.medhir.in")); // Allow frontend
+                List.of("http://localhost:3000", "http://192.168.0.200:3000", "https://manage.medhir.in")); // Allow frontend
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
         config.setAllowedHeaders(List.of("*"));
         config.setAllowCredentials(true); // Allow cookies

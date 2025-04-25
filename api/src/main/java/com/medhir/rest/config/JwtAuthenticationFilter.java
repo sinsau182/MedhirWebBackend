@@ -8,6 +8,7 @@ import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -20,13 +21,15 @@ import java.security.Key;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
+
 @Component
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
-    private static final String SECRET_KEY = "supersecretkeyforjwtgeneration123456";
+    @Value("${jwt.secret}")
+    private String secretKey;
 
     private Key getSigningKey() {
-        return Keys.hmacShaKeyFor(SECRET_KEY.getBytes());
+        return Keys.hmacShaKeyFor(secretKey.getBytes());
     }
 
     @Override

@@ -1,8 +1,10 @@
 package com.medhir.rest.service;
 
 import com.medhir.rest.exception.DuplicateResourceException;
+import com.medhir.rest.exception.ResourceNotFoundException;
 import com.medhir.rest.model.CompanyModel;
 import com.medhir.rest.repository.CompanyRepository;
+import com.medhir.rest.utils.GeneratedId;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -14,6 +16,8 @@ public class CompanyService {
 
     @Autowired
     private CompanyRepository companyRepository;
+    @Autowired
+    GeneratedId generatedId;;
 
     public CompanyModel createCompany(CompanyModel company) {
         // Check if email already exists
@@ -24,6 +28,7 @@ public class CompanyService {
         if (companyRepository.findByPhone(company.getPhone()).isPresent()) {
             throw new DuplicateResourceException("Phone number already exists: " + company.getPhone());
         }
+        company.setCompanyId(generatedId.generateId("CID", CompanyModel.class, "companyId"));
 
         return companyRepository.save(company);
     }
@@ -32,10 +37,10 @@ public class CompanyService {
         return companyRepository.findAll();
     }
 
-    public CompanyModel updateCompany(String id, CompanyModel company) {
-        Optional<CompanyModel> existingCompany = companyRepository.findById(id);
+    public CompanyModel updateCompany(String companyId, CompanyModel company) {
+        Optional<CompanyModel> existingCompany = companyRepository.findByCompanyId(companyId);
         if (existingCompany.isEmpty()) {
-            throw new DuplicateResourceException("Company not found with ID: " + id);
+            throw new ResourceNotFoundException("Company not found with ID: " + companyId);
         }
 
         CompanyModel companyToUpdate = existingCompany.get();
@@ -57,14 +62,19 @@ public class CompanyService {
         companyToUpdate.setPhone(company.getPhone());
         companyToUpdate.setGst(company.getGst());
         companyToUpdate.setRegAdd(company.getRegAdd());
+        companyToUpdate.setPrefixForEmpID(company.getPrefixForEmpID());
 
         return companyRepository.save(companyToUpdate);
     }
 
-    public void deleteCompany(String id) {
-        if (!companyRepository.existsById(id)) {
-            throw new DuplicateResourceException("Company not found with ID: " + id);
+    public void deleteCompany(String companyId) {
+        if (!companyRepository.existsByCompanyId(companyId)) {
+            throw new DuplicateResourceException("Company not found with ID: " + companyId);
         }
-        companyRepository.deleteById(id);
+        companyRepository.deleteByCompanyId(companyId);
+    }
+    public Optional<CompanyModel> getCompanyById(String companyId) {
+        return Optional.ofNullable(companyRepository.findByCompanyId(companyId)
+                .orElseThrow(() -> new ResourceNotFoundException("Company not found with ID: " + companyId)));
     }
 }

@@ -1,10 +1,12 @@
 package com.medhir.rest.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.validation.constraints.NotBlank;
 import lombok.*;
 import org.springframework.data.annotation.Id;
-import org.springframework.data.mongodb.core.mapping.DBRef;
 import org.springframework.data.mongodb.core.mapping.Document;
+
+import java.util.List;
 
 @Document(collection = "modules")
 @Getter
@@ -15,7 +17,10 @@ import org.springframework.data.mongodb.core.mapping.Document;
 public class ModuleModel {
 
     @Id
+    @JsonIgnore
     private String id;
+
+    private String moduleId;
 
     @NotBlank(message = "Module name cannot be empty")
     private String moduleName;
@@ -23,10 +28,7 @@ public class ModuleModel {
     @NotBlank(message = "Description cannot be empty")
     private String description;
 
-    // This ensures userId is not stored in MongoDB
-    @NotBlank(message = "User ID cannot be empty")
-    private String userId;
+    private List<String> employeeIds;
 
-    @DBRef
-    private UserModel user; // Store a single user as admin
+    private String companyId;
 }

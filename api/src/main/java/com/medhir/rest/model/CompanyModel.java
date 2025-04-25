@@ -1,5 +1,6 @@
 package com.medhir.rest.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;
@@ -16,7 +17,12 @@ import org.springframework.data.mongodb.core.mapping.Document;
 public class CompanyModel {
 
     @Id
+    @JsonIgnore
+
     private String id; //  MongoDB uses String IDs by default
+
+    private String companyId;
+
 
     @NotBlank(message = "Company name cannot be empty")
     @Size(min = 2, message = "Company name must have at least 2 characters")
@@ -40,4 +46,9 @@ public class CompanyModel {
 
     @NotBlank(message = "Registration address cannot be empty")
     private String regAdd;
+
+    private String prefixForEmpID;
+
+    private String colorCode="#FFFFFF";
+
 }

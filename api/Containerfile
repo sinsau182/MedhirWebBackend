@@ -1,4 +1,4 @@
-FROM eclipse-temurin:23.0.2_7-jdk-alpine AS jre-builder
+FROM eclipse-temurin:21-jdk-alpine-3.21 AS jre-builder
 
 COPY build/libs/api-0.0.1.jar /app/app.jar
 
@@ -11,7 +11,7 @@ RUN jdeps \
         --print-module-deps \
         -q \
         --recursive \
-        --multi-release 23 \
+        --multi-release 21 \
         --class-path "BOOT-INF/lib/*" \
         --module-path "BOOT-INF/lib/*" \
         app.jar > modules.info
@@ -23,14 +23,14 @@ RUN $JAVA_HOME/bin/jlink \
          --no-man-pages \
          --no-header-files \
          --compress=2 \
-         --output /optimized-jdk-23
+         --output /optimized-jdk-21
 
 FROM alpine:latest
-ENV JAVA_HOME=/opt/jdk/jdk-23
+ENV JAVA_HOME=/opt/jdk/jdk-21
 ENV PATH="${JAVA_HOME}/bin:${PATH}"
 
 # copy JRE from the base image
-COPY --from=jre-builder /optimized-jdk-23 $JAVA_HOME
+COPY --from=jre-builder /optimized-jdk-21 $JAVA_HOME
 
 # Add app user
 ARG APPLICATION_USER=springboot

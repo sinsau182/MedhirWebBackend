@@ -43,6 +43,8 @@ public class AuthService {
         return "User registered successfully!";
     }
 
+
+
     public AuthResponse login(AuthRequest request) {
         Optional<UserAccount> userOpt = userAccountRepository.findByEmail(request.getEmail());
         if (userOpt.isEmpty()
