@@ -68,7 +68,7 @@ public class LeaveApplicationService {
 
         // Validate company exists
         companyService.getCompanyById(request.getCompanyId())
-            .orElseThrow(() -> new ResourceNotFoundException("Company not found with ID: " + request.getCompanyId()));
+                .orElseThrow(() -> new ResourceNotFoundException("Company not found with ID: " + request.getCompanyId()));
 
         // Set end date equal to start date if not provided
         if (request.getEndDate() == null) {
@@ -222,17 +222,17 @@ public class LeaveApplicationService {
     public List<LeaveWithEmployeeDetails> getLeavesByStatus(String companyId, String status) {
         // Validate company exists
         companyService.getCompanyById(companyId)
-            .orElseThrow(() -> new ResourceNotFoundException("Company not found with id: " + companyId));
+                .orElseThrow(() -> new ResourceNotFoundException("Company not found with id: " + companyId));
 
         if (!"Pending".equals(status) && !"Approved".equals(status) && !"Rejected".equals(status)) {
             throw new IllegalArgumentException("Status must be either 'Pending', 'Approved', or 'Rejected'");
         }
 
         List<LeaveModel> leaves = leaveRepository.findByCompanyIdAndStatus(companyId, status);
-        
+
         return leaves.stream().map(leave -> {
             LeaveWithEmployeeDetails leaveWithDetails = new LeaveWithEmployeeDetails();
-            
+
             // Copy all fields from LeaveModel to LeaveWithEmployeeDetails
             leaveWithDetails.setId(leave.getId());
             leaveWithDetails.setLeaveId(leave.getLeaveId());
@@ -253,7 +253,7 @@ public class LeaveApplicationService {
             if (employeeOpt.isPresent()) {
                 com.medhir.rest.employee.dto.EmployeeWithLeaveDetailsDTO employee = employeeOpt.get();
                 leaveWithDetails.setEmployeeName(employee.getName());
-                
+
                 // Get department name
                 try {
                     if (employee.getDepartment() != null && !employee.getDepartment().isEmpty()) {
@@ -272,20 +272,20 @@ public class LeaveApplicationService {
         try {
             // Create list of dates between start and end date
             List<LocalDate> dates = leaveDate.datesUntil(endDate.plusDays(1)).collect(Collectors.toList());
-            
+
             // Convert dates to string array
             String datesJson = dates.stream()
-                .map(date -> "\"" + date + "\"")
-                .collect(Collectors.joining(",", "[", "]"));
+                    .map(date -> "\"" + date + "\"")
+                    .collect(Collectors.joining(",", "[", "]"));
 
             String url = ATTENDANCE_SERVICE_URL + "/mark-bulk";
-            
+
             // Create request body
             String requestBody = String.format(
-                "{\"employeeId\":\"%s\",\"status\":\"Leave\",\"dates\":%s,\"leaveId\":\"%s\"}",
-                employeeId,
-                datesJson,
-                leaveId
+                    "{\"employeeId\":\"%s\",\"status\":\"Leave\",\"dates\":%s,\"leaveId\":\"%s\"}",
+                    employeeId,
+                    datesJson,
+                    leaveId
             );
 
             HttpHeaders headers = new HttpHeaders();
@@ -303,20 +303,20 @@ public class LeaveApplicationService {
         try {
             // Create list of dates between start and end date
             List<LocalDate> dates = leaveDate.datesUntil(endDate.plusDays(1)).collect(Collectors.toList());
-            
+
             // Convert dates to string array
             String datesJson = dates.stream()
-                .map(date -> "\"" + date + "\"")
-                .collect(Collectors.joining(",", "[", "]"));
+                    .map(date -> "\"" + date + "\"")
+                    .collect(Collectors.joining(",", "[", "]"));
 
             String url = ATTENDANCE_SERVICE_URL + "/mark-bulk";
-            
+
             // Create request body
             String requestBody = String.format(
-                "{\"employeeId\":\"%s\",\"status\":\"LOP\",\"dates\":%s,\"leaveId\":\"%s\"}",
-                employeeId,
-                datesJson,
-                leaveId
+                    "{\"employeeId\":\"%s\",\"status\":\"LOP\",\"dates\":%s,\"leaveId\":\"%s\"}",
+                    employeeId,
+                    datesJson,
+                    leaveId
             );
 
             HttpHeaders headers = new HttpHeaders();

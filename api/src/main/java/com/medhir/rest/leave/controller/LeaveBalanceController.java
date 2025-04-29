@@ -41,27 +41,29 @@ public class LeaveBalanceController {
         }
     }
 
-//    @PostMapping("/leaves-taken/{employeeId}")
-//    public ResponseEntity<?> updateLeavesTaken(
-//            @PathVariable String employeeId,
-//            @RequestParam double days) {
-//        try {
-//            leaveBalanceService.updateLeavesTaken(employeeId, days);
-//            return ResponseEntity.ok(Map.of("message", "Leaves taken updated successfully"));
-//        } catch (Exception e) {
-//            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
-//        }
-//    }
+    // @PostMapping("/leaves-taken/{employeeId}")
+    // public ResponseEntity<?> updateLeavesTaken(
+    // @PathVariable String employeeId,
+    // @RequestParam double days) {
+    // try {
+    // leaveBalanceService.updateLeavesTaken(employeeId, days);
+    // return ResponseEntity.ok(Map.of("message", "Leaves taken updated
+    // successfully"));
+    // } catch (Exception e) {
+    // return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+    // }
+    // }
 
-//    @PostMapping("/comp-off/{employeeId}")
-//    public ResponseEntity<?> addCompOffEarned(
-//            @PathVariable String employeeId,
-//            @RequestParam double days) {
-//        try {
-//            leaveBalanceService.addCompOffEarned(employeeId, days);
-//            return ResponseEntity.ok(Map.of("message", "Comp-off earned added successfully"));
-//        } catch (Exception e) {
-//            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
-//        }
-//    }
-} 
+    // @PostMapping("/comp-off/{employeeId}")
+    // public ResponseEntity<?> addCompOffEarned(
+    // @PathVariable String employeeId,
+    // @RequestParam double days) {
+    // try {
+    // leaveBalanceService.addCompOffEarned(employeeId, days);
+    // return ResponseEntity.ok(Map.of("message", "Comp-off earned added
+    // successfully"));
+    // } catch (Exception e) {
+    // return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+    // }
+    // }
+}

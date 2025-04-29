@@ -10,9 +10,14 @@ import java.util.Optional;
 @Repository
 public interface PublicHolidayRepository extends MongoRepository<PublicHolidayModel, String> {
     Optional<PublicHolidayModel> findByHolidayName(String holidayName);
+
     boolean existsByHolidayName(String holidayName);
+
     boolean existsByDate(LocalDate date);
+
     Optional<PublicHolidayModel> findByHolidayId(String holidayId);
+
     boolean existsByHolidayId(String holidayId);
+
     List<PublicHolidayModel> findByCompanyId(String companyId);
 }

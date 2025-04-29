@@ -15,7 +15,6 @@ import java.util.Optional;
 @Service
 public class EmployeeUpdateService {
 
-
     @Autowired
     private EmployeeRepository employeeRepository;
 
@@ -24,32 +23,32 @@ public class EmployeeUpdateService {
 
     // Create update request with images
     public EmployeeModel createUpdateRequest(EmployeeUpdateRequest request,
-                                                     MultipartFile profileImage, MultipartFile aadharImage,
-                                                     MultipartFile panImage, MultipartFile passportImage,
-                                                     MultipartFile drivingLicenseImage, MultipartFile voterIdImage,
-                                                     MultipartFile passbookImage) {
+            MultipartFile profileImage, MultipartFile aadharImage,
+            MultipartFile panImage, MultipartFile passportImage,
+            MultipartFile drivingLicenseImage, MultipartFile voterIdImage,
+            MultipartFile passbookImage) {
 
         String employeeId = request.getEmployeeId();
 
         Optional<EmployeeModel> employee = employeeRepository.findByEmployeeId(employeeId);
-        if(employee.isEmpty()) {
+        if (employee.isEmpty()) {
             throw new ResourceNotFoundException("Employee not found: " + employeeId);
         }
 
-        if(request.getEmailPersonal() != null){
+        if (request.getEmailPersonal() != null) {
             Optional<EmployeeModel> emailExists = employeeRepository.findByEmailPersonal(request.getEmailPersonal());
 
-            if(emailExists.isPresent() && !emailExists.get().getEmployeeId().equals(request.getEmployeeId())){
-                throw new DuplicateResourceException(emailExists.get().getEmailPersonal() +" : Email is already in use by other Employee");
+            if (emailExists.isPresent() && !emailExists.get().getEmployeeId().equals(request.getEmployeeId())) {
+                throw new DuplicateResourceException(
+                        emailExists.get().getEmailPersonal() + " : Email is already in use by other Employee");
             }
         }
 
-
         Optional<EmployeeModel> phoneExists = employeeRepository.findByPhone(request.getPhone());
-        if(phoneExists.isPresent() && !phoneExists.get().getEmployeeId().equals(request.getEmployeeId())){
-            throw new DuplicateResourceException(phoneExists.get().getPhone() +" : Phone number is already in use by other Employee");
+        if (phoneExists.isPresent() && !phoneExists.get().getEmployeeId().equals(request.getEmployeeId())) {
+            throw new DuplicateResourceException(
+                    phoneExists.get().getPhone() + " : Phone number is already in use by other Employee");
         }
-
 
         // Store images in MinIO and update URLs in request object
         if (profileImage != null) {
@@ -74,7 +73,8 @@ public class EmployeeUpdateService {
             request.setPassbookImgUrl(minioService.uploadDocumentsImg(passbookImage, employeeId));
         }
 
-        //store the request in the employee Model in the Pending request field with status as Pending
+        // store the request in the employee Model in the Pending request field with
+        // status as Pending
         EmployeeModel employeeModel = employee.get();
         employeeModel.setUpdateStatus("Pending");
         employeeModel.setPendingUpdateRequest(request);
@@ -94,7 +94,8 @@ public class EmployeeUpdateService {
 
         EmployeeModel employee = requestOpt.get();
 
-        if (!"Pending".equals(employee.getUpdateStatus())) return false; // Prevent re-processing
+        if (!"Pending".equals(employee.getUpdateStatus()))
+            return false; // Prevent re-processing
 
         // Get pending updates
         EmployeeUpdateRequest request = employee.getPendingUpdateRequest();
@@ -104,33 +105,52 @@ public class EmployeeUpdateService {
         }
         if ("Approved".equals(status)) {
 
-
             // Apply the approved changes
-            if (request.getEmailPersonal() != null) employee.setEmailPersonal(request.getEmailPersonal());
-            if (request.getPhone() != null) employee.setPhone(request.getPhone());
-            if (request.getAlternatePhone() != null) employee.setAlternatePhone(request.getAlternatePhone());
-            if (request.getCurrentAddress() != null) employee.setCurrentAddress(request.getCurrentAddress());
-            if (request.getPermanentAddress() != null) employee.setPermanentAddress(request.getPermanentAddress());
+            if (request.getEmailPersonal() != null)
+                employee.setEmailPersonal(request.getEmailPersonal());
+            if (request.getPhone() != null)
+                employee.setPhone(request.getPhone());
+            if (request.getAlternatePhone() != null)
+                employee.setAlternatePhone(request.getAlternatePhone());
+            if (request.getCurrentAddress() != null)
+                employee.setCurrentAddress(request.getCurrentAddress());
+            if (request.getPermanentAddress() != null)
+                employee.setPermanentAddress(request.getPermanentAddress());
+            if (request.getProfileImgUrl() != null)
+                employee.setEmployeeImgUrl(request.getProfileImgUrl());
 
             // Bank Details
             if (employee.getBankDetails() != null) {
-                if (request.getAccountHolderName() != null) employee.getBankDetails().setAccountHolderName(request.getAccountHolderName());
-                if (request.getAccountNumber() != null) employee.getBankDetails().setAccountNumber(request.getAccountNumber());
-                if (request.getBankName() != null) employee.getBankDetails().setBankName(request.getBankName());
-                if (request.getBranchName() != null) employee.getBankDetails().setBranchName(request.getBranchName());
-                if (request.getIfscCode() != null) employee.getBankDetails().setIfscCode(request.getIfscCode());
-                if (request.getPassbookImgUrl() != null) employee.getBankDetails().setPassbookImgUrl(request.getPassbookImgUrl());
-                if (request.getUpiId() != null) employee.getBankDetails().setUpiId(request.getUpiId());
-                if (request.getUpiPhoneNumber() != null) employee.getBankDetails().setUpiPhoneNumber(request.getUpiPhoneNumber());
+                if (request.getAccountHolderName() != null)
+                    employee.getBankDetails().setAccountHolderName(request.getAccountHolderName());
+                if (request.getAccountNumber() != null)
+                    employee.getBankDetails().setAccountNumber(request.getAccountNumber());
+                if (request.getBankName() != null)
+                    employee.getBankDetails().setBankName(request.getBankName());
+                if (request.getBranchName() != null)
+                    employee.getBankDetails().setBranchName(request.getBranchName());
+                if (request.getIfscCode() != null)
+                    employee.getBankDetails().setIfscCode(request.getIfscCode());
+                if (request.getPassbookImgUrl() != null)
+                    employee.getBankDetails().setPassbookImgUrl(request.getPassbookImgUrl());
+                if (request.getUpiId() != null)
+                    employee.getBankDetails().setUpiId(request.getUpiId());
+                if (request.getUpiPhoneNumber() != null)
+                    employee.getBankDetails().setUpiPhoneNumber(request.getUpiPhoneNumber());
             }
 
             // ID Proofs
             if (employee.getIdProofs() != null) {
-                if (request.getAadharImgUrl() != null) employee.getIdProofs().setAadharImgUrl(request.getAadharImgUrl());
-                if (request.getPancardImgUrl() != null) employee.getIdProofs().setPancardImgUrl(request.getPancardImgUrl());
-                if (request.getDrivingLicenseImgUrl() != null) employee.getIdProofs().setDrivingLicenseImgUrl(request.getDrivingLicenseImgUrl());
-                if (request.getVoterIdImgUrl() != null) employee.getIdProofs().setVoterIdImgUrl(request.getVoterIdImgUrl());
-                if (request.getPassportImgUrl() != null) employee.getIdProofs().setPassportImgUrl(request.getPassportImgUrl());
+                if (request.getAadharImgUrl() != null)
+                    employee.getIdProofs().setAadharImgUrl(request.getAadharImgUrl());
+                if (request.getPancardImgUrl() != null)
+                    employee.getIdProofs().setPancardImgUrl(request.getPancardImgUrl());
+                if (request.getDrivingLicenseImgUrl() != null)
+                    employee.getIdProofs().setDrivingLicenseImgUrl(request.getDrivingLicenseImgUrl());
+                if (request.getVoterIdImgUrl() != null)
+                    employee.getIdProofs().setVoterIdImgUrl(request.getVoterIdImgUrl());
+                if (request.getPassportImgUrl() != null)
+                    employee.getIdProofs().setPassportImgUrl(request.getPassportImgUrl());
             }
 
             // Clear pending request after approval
@@ -144,7 +164,5 @@ public class EmployeeUpdateService {
         employeeRepository.save(employee);
         return true;
     }
-
-
 
 }

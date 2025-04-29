@@ -28,10 +28,10 @@ public class EmployeeModel {
     @JsonIgnore
     private String id;
 
-//    @NotBlank(message = "Employee Id cannot be empty")
+    // @NotBlank(message = "Employee Id cannot be empty")
     @Indexed(unique = true)
     private String employeeId;
-    
+
     @NotBlank(message = "Company Id cannot be empty")
     private String companyId;
 
@@ -48,7 +48,6 @@ public class EmployeeModel {
 
     private Set<String> Roles;
     private List<String> moduleIds;
-
 
     @Email(message = "Invalid email format!")
     @Indexed(unique = true)
@@ -67,8 +66,7 @@ public class EmployeeModel {
     private String esicNumber;
     private List<String> weeklyOffs;
 
-
-    private String employeeImgUrl="";
+    private String employeeImgUrl = "";
 
     private LocalDate joiningDate;
     private String department;
@@ -92,36 +90,35 @@ public class EmployeeModel {
     @Valid
     private SalaryDetails salaryDetails;
 
-    private String updateStatus ; //Approved, Pending, Rejected
+    private String updateStatus; // Approved, Pending, Rejected
 
     @Valid
-    private EmployeeUpdateRequest pendingUpdateRequest; // Reference to EmployeeUpdateRequest which stores the pending updates
-
+    private EmployeeUpdateRequest pendingUpdateRequest; // Reference to EmployeeUpdateRequest which stores the pending
+                                                        // updates
 
     @Getter
     @Setter
     public static class IdProofs {
         @Pattern(regexp = "^$|\\d{12}", message = "Aadhar number must be exactly 12 digits or empty")
         private String aadharNo = "";
-        private String aadharImgUrl="";
+        private String aadharImgUrl = "";
 
         @Pattern(regexp = "^$|[A-Z]{5}[0-9]{4}[A-Z]{1}", message = "Invalid PAN number format or empty")
         private String panNo = "";
-        private String pancardImgUrl="";
+        private String pancardImgUrl = "";
 
         @Pattern(regexp = "^$|^[A-Z]{1}[0-9]{7}$", message = "Invalid Passport number format or empty")
         private String passport = "";
-        private String passportImgUrl="";
+        private String passportImgUrl = "";
 
         @Pattern(regexp = "^$|^[A-Za-z0-9]{8,16}$", message = "Invalid Driving License format or empty")
         private String drivingLicense = "";
-        private String drivingLicenseImgUrl="";
+        private String drivingLicenseImgUrl = "";
 
         @Pattern(regexp = "^$|^[A-Z]{3}[0-9]{7}$", message = "Invalid Voter ID format or empty")
         private String voterId = "";
-        private String voterIdImgUrl="";
+        private String voterIdImgUrl = "";
     }
-
 
     @Getter
     @Setter
@@ -143,7 +140,6 @@ public class EmployeeModel {
 
         private String passbookImgUrl;
     }
-
 
     @Getter
     @Setter

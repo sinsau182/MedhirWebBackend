@@ -65,17 +65,17 @@ public class EmployeeUpdateController {
             EmployeeModel employee = existingEmployee.get();
             if ("Pending".equals(employee.getUpdateStatus())) {
                 return ResponseEntity.badRequest().body(Map.of(
-                    "error", "You already have a pending update request. Please wait for HR to process your previous request."
-                ));
+                        "error",
+                        "You already have a pending update request. Please wait for HR to process your previous request."));
             }
         }
 
         // Pass the deserialized object and images to the service layer
         EmployeeModel savedRequest = employeeUpdateService.createUpdateRequest(
-                updateRequest, profileImage, aadharImage, panImage, passportImage, drivingLicenseImage, voterIdImage, passbookImage);
+                updateRequest, profileImage, aadharImage, panImage, passportImage, drivingLicenseImage, voterIdImage,
+                passbookImage);
 
         return ResponseEntity.ok(Map.of(
-                "message", "Update request submitted for approval"
-        ));
+                "message", "Update request submitted for approval"));
     }
 }

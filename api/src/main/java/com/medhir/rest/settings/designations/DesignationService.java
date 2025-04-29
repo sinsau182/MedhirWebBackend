@@ -107,21 +107,21 @@ public class DesignationService {
     public List<CompanyDesignationDTO> getAllDesignationsByCompanyId(String companyId) {
         // Get all departments for the company
         List<DepartmentModel> departments = departmentService.getDepartmentsByCompanyId(companyId);
-        
+
         // Get all designations for each department
         return departments.stream()
-            .flatMap(department -> {
-                List<DesignationModel> designations = designationRepository.findByDepartment(department.getDepartmentId());
-                return designations.stream()
-                    .map(designation -> new CompanyDesignationDTO(
-                        designation.getDesignationId(),
-                        designation.getName(),
-                        department.getName(), // Department name instead of ID
-                        designation.getDescription(),
-                        designation.isManager(),
-                        designation.isOvertimeEligible()
-                    ));
-            })
-            .collect(Collectors.toList());
+                .flatMap(department -> {
+                    List<DesignationModel> designations = designationRepository.findByDepartment(department.getDepartmentId());
+                    return designations.stream()
+                            .map(designation -> new CompanyDesignationDTO(
+                                    designation.getDesignationId(),
+                                    designation.getName(),
+                                    department.getName(), // Department name instead of ID
+                                    designation.getDescription(),
+                                    designation.isManager(),
+                                    designation.isOvertimeEligible()
+                            ));
+                })
+                .collect(Collectors.toList());
     }
 }

@@ -25,8 +25,6 @@ public class EmployeeUpdateRequest {
     @Pattern(regexp = "\\d{10}", message = "Alternate Phone number must be exactly 10 digits")
     private String alternatePhone;
 
-
-
     private String currentAddress;
     private String permanentAddress;
 
