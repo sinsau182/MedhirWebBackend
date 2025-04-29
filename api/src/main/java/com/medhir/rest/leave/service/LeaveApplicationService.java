@@ -1,17 +1,17 @@
 package com.medhir.rest.leave.service;
 
 import com.medhir.rest.employee.EmployeeService;
+import com.medhir.rest.exception.ResourceNotFoundException;
 import com.medhir.rest.leave.dto.LeaveWithEmployeeDetails;
 import com.medhir.rest.leave.dto.UpdateLeaveStatusRequest;
-import com.medhir.rest.leave.model.LeaveModel;
 import com.medhir.rest.leave.model.LeaveBalance;
+import com.medhir.rest.leave.model.LeaveModel;
 import com.medhir.rest.leave.repositoris.LeaveRepository;
-import com.medhir.rest.exception.ResourceNotFoundException;
-import com.medhir.rest.utils.GeneratedId;
+import com.medhir.rest.service.CompanyService;
 import com.medhir.rest.settings.department.DepartmentService;
 import com.medhir.rest.settings.leaveSettings.leaveType.LeaveTypeService;
 import com.medhir.rest.settings.leaveSettings.leavepolicy.LeavePolicyService;
-import com.medhir.rest.service.CompanyService;
+import com.medhir.rest.utils.GeneratedId;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpEntity;
@@ -61,7 +61,7 @@ public class LeaveApplicationService {
 
     public LeaveModel applyLeave(LeaveModel request) {
         // Validate employee exists and get their details
-        Optional<com.medhir.rest.employee.EmployeeModel> employeeOpt = employeeService.getEmployeeById(request.getEmployeeId());
+        Optional<com.medhir.rest.employee.dto.EmployeeWithLeaveDetailsDTO> employeeOpt = employeeService.getEmployeeById(request.getEmployeeId());
         if (employeeOpt.isEmpty()) {
             throw new ResourceNotFoundException("Employee not found with ID: " + request.getEmployeeId());
         }
@@ -249,9 +249,9 @@ public class LeaveApplicationService {
             leaveWithDetails.setCreatedAt(leave.getCreatedAt());
 
             // Get employee details
-            Optional<com.medhir.rest.employee.EmployeeModel> employeeOpt = employeeService.getEmployeeById(leave.getEmployeeId());
+            Optional<com.medhir.rest.employee.dto.EmployeeWithLeaveDetailsDTO> employeeOpt = employeeService.getEmployeeById(leave.getEmployeeId());
             if (employeeOpt.isPresent()) {
-                com.medhir.rest.employee.EmployeeModel employee = employeeOpt.get();
+                com.medhir.rest.employee.dto.EmployeeWithLeaveDetailsDTO employee = employeeOpt.get();
                 leaveWithDetails.setEmployeeName(employee.getName());
                 
                 // Get department name

@@ -1,9 +1,8 @@
 package com.medhir.rest.controller;
 
+import com.medhir.rest.dto.ModuleResponseDTO;
 import com.medhir.rest.model.ModuleModel;
 import com.medhir.rest.service.ModuleService;
-import com.medhir.rest.dto.ModuleResponseDTO;
-import com.medhir.rest.dto.UserCompanyDTO;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;

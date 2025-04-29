@@ -1,11 +1,12 @@
 package com.medhir.rest.employee;
 
 import com.medhir.rest.auth.service.EmployeeAuthService;
-import com.medhir.rest.dto.RegisterAdminRequest;
-import com.medhir.rest.dto.UserCompanyDTO;
 import com.medhir.rest.dto.CompanyEmployeeDTO;
 import com.medhir.rest.dto.ManagerEmployeeDTO;
+import com.medhir.rest.dto.RegisterAdminRequest;
+import com.medhir.rest.dto.UserCompanyDTO;
 import com.medhir.rest.employee.dto.EmployeeAttendanceDetailsDTO;
+import com.medhir.rest.employee.dto.EmployeeWithLeaveDetailsDTO;
 import com.medhir.rest.exception.DuplicateResourceException;
 import com.medhir.rest.exception.ResourceNotFoundException;
 import com.medhir.rest.model.CompanyModel;
@@ -13,10 +14,16 @@ import com.medhir.rest.model.ModuleModel;
 import com.medhir.rest.repository.ModuleRepository;
 import com.medhir.rest.service.CompanyService;
 import com.medhir.rest.service.MinioService;
+import com.medhir.rest.settings.department.DepartmentModel;
+import com.medhir.rest.settings.department.DepartmentService;
 import com.medhir.rest.settings.designations.DesignationModel;
 import com.medhir.rest.settings.designations.DesignationService;
-import com.medhir.rest.settings.department.DepartmentService;
+import com.medhir.rest.settings.leaveSettings.leaveType.LeaveTypeModel;
+import com.medhir.rest.settings.leaveSettings.leaveType.LeaveTypeService;
+import com.medhir.rest.settings.leaveSettings.leavepolicy.LeavePolicyModel;
+import com.medhir.rest.settings.leaveSettings.leavepolicy.LeavePolicyService;
 import com.medhir.rest.utils.GeneratedId;
+import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.*;
@@ -26,7 +33,6 @@ import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.util.*;
 import java.util.stream.Collectors;
 
 @Service
@@ -53,9 +59,13 @@ public class EmployeeService {
     private DepartmentService departmentService;
     @Autowired
     private EmployeeAuthService employeeAuthService;
+    @Autowired
+    private LeavePolicyService leavePolicyService;
+    @Autowired
+    private LeaveTypeService leaveTypeService;
 
     //Create Employee
-    public EmployeeModel createEmployee(EmployeeModel employee,
+    public EmployeeWithLeaveDetailsDTO createEmployee(EmployeeModel employee,
                                         MultipartFile profileImage,
                                         MultipartFile aadharImage,
                                         MultipartFile panImage,
@@ -78,6 +88,15 @@ public class EmployeeService {
 
         // Set role as EMPLOYEE
         employee.setRoles(Set.of("EMPLOYEE"));
+
+        // Set leave policy based on department
+        if (employee.getDepartment() != null && !employee.getDepartment().isEmpty()) {
+            DepartmentModel department = departmentService.getDepartmentById(employee.getDepartment());
+            LeavePolicyModel leavePolicy = leavePolicyService.getLeavePolicyById(department.getLeavePolicy());
+            
+            // Set the leave policy ID
+            employee.setLeavePolicyId(department.getLeavePolicy());
+        }
 
         employee = setDefaultValues(employee);
 
@@ -107,6 +126,37 @@ public class EmployeeService {
         employee.setEmployeeId(generateEmployeeId(employee.getCompanyId()));
         EmployeeModel savedEmployee = employeeRepository.save(employee);
 
+        // Create response DTO with leave details
+        EmployeeWithLeaveDetailsDTO response = new EmployeeWithLeaveDetailsDTO();
+        BeanUtils.copyProperties(savedEmployee, response);
+
+        // Populate leave policy and type names
+        if (savedEmployee.getLeavePolicyId() != null) {
+            try {
+                LeavePolicyModel leavePolicy = leavePolicyService.getLeavePolicyById(savedEmployee.getLeavePolicyId());
+                response.setLeavePolicyName(leavePolicy.getName());
+                
+                // Get all leave type names and IDs from the policy
+                List<String> leaveTypeNames = new ArrayList<>();
+                List<String> leaveTypeIds = new ArrayList<>();
+                
+                leavePolicy.getLeaveAllocations().forEach(allocation -> {
+                    try {
+                        LeaveTypeModel leaveType = leaveTypeService.getLeaveTypeById(allocation.getLeaveTypeId());
+                        leaveTypeNames.add(leaveType.getLeaveTypeName());
+                        leaveTypeIds.add(leaveType.getLeaveTypeId());
+                    } catch (Exception e) {
+                        // Skip if leave type not found
+                    }
+                });
+                
+                response.setLeaveTypeNames(leaveTypeNames);
+                response.setLeaveTypeIds(leaveTypeIds);
+            } catch (Exception e) {
+                // If leave policy not found, leave names and IDs as null
+            }
+        }
+
         // Register employee for login with email and phone number as password
         if (employee.getPhone() != null && !employee.getPhone().isEmpty() &&
                 employee.getEmailPersonal() != null && !employee.getEmailPersonal().isEmpty()) {
@@ -118,19 +168,48 @@ public class EmployeeService {
             );
         }
 
-
-
         // call Attendance Service to register user for face verification
         registerUserInAttendanceService(savedEmployee);
 
-
-
-        return savedEmployee;
+        return response;
     }
 
     // Get All Employees
-    public List<EmployeeModel> getAllEmployees() {
-        return employeeRepository.findAll();
+    public List<EmployeeWithLeaveDetailsDTO> getAllEmployees() {
+        List<EmployeeModel> employees = employeeRepository.findAll();
+        return employees.stream().map(employee -> {
+            EmployeeWithLeaveDetailsDTO dto = new EmployeeWithLeaveDetailsDTO();
+            BeanUtils.copyProperties(employee, dto);
+            
+            // Get leave policy name if available
+            if (employee.getLeavePolicyId() != null) {
+                try {
+                    LeavePolicyModel leavePolicy = leavePolicyService.getLeavePolicyById(employee.getLeavePolicyId());
+                    dto.setLeavePolicyName(leavePolicy.getName());
+                    
+                    // Get all leave type names and IDs from the policy
+                    List<String> leaveTypeNames = new ArrayList<>();
+                    List<String> leaveTypeIds = new ArrayList<>();
+                    
+                    leavePolicy.getLeaveAllocations().forEach(allocation -> {
+                        try {
+                            LeaveTypeModel leaveType = leaveTypeService.getLeaveTypeById(allocation.getLeaveTypeId());
+                            leaveTypeNames.add(leaveType.getLeaveTypeName());
+                            leaveTypeIds.add(leaveType.getLeaveTypeId());
+                        } catch (Exception e) {
+                            // Skip if leave type not found
+                        }
+                    });
+                    
+                    dto.setLeaveTypeNames(leaveTypeNames);
+                    dto.setLeaveTypeIds(leaveTypeIds);
+                } catch (Exception e) {
+                    // If leave policy not found, leave names and IDs as null
+                }
+            }
+            
+            return dto;
+        }).collect(Collectors.toList());
     }
 
     // Get All Employees with minimal fields (name and employeeId)
@@ -145,14 +224,78 @@ public class EmployeeService {
     }
 
     // Get All Employees by Company ID
-    public List<EmployeeModel> getAllEmployeesByCompanyId(String companyId) {
-        return employeeRepository.findByCompanyId(companyId);
+    public List<EmployeeWithLeaveDetailsDTO> getEmployeesByCompanyId(String companyId) {
+        List<EmployeeModel> employees = employeeRepository.findByCompanyId(companyId);
+        return employees.stream().map(employee -> {
+            EmployeeWithLeaveDetailsDTO dto = new EmployeeWithLeaveDetailsDTO();
+            BeanUtils.copyProperties(employee, dto);
+            
+            // Get leave policy name if available
+            if (employee.getLeavePolicyId() != null) {
+                try {
+                    LeavePolicyModel leavePolicy = leavePolicyService.getLeavePolicyById(employee.getLeavePolicyId());
+                    dto.setLeavePolicyName(leavePolicy.getName());
+                    
+                    // Get all leave type names and IDs from the policy
+                    List<String> leaveTypeNames = new ArrayList<>();
+                    List<String> leaveTypeIds = new ArrayList<>();
+                    
+                    leavePolicy.getLeaveAllocations().forEach(allocation -> {
+                        try {
+                            LeaveTypeModel leaveType = leaveTypeService.getLeaveTypeById(allocation.getLeaveTypeId());
+                            leaveTypeNames.add(leaveType.getLeaveTypeName());
+                            leaveTypeIds.add(leaveType.getLeaveTypeId());
+                        } catch (Exception e) {
+                            // Skip if leave type not found
+                        }
+                    });
+                    
+                    dto.setLeaveTypeNames(leaveTypeNames);
+                    dto.setLeaveTypeIds(leaveTypeIds);
+                } catch (Exception e) {
+                    // If leave policy not found, leave names and IDs as null
+                }
+            }
+            
+            return dto;
+        }).collect(Collectors.toList());
     }
 
-
     // Get Employee By EmployeeId
-    public Optional<EmployeeModel> getEmployeeById(String employeeId){
-        return employeeRepository.findByEmployeeId(employeeId);
+    public Optional<EmployeeWithLeaveDetailsDTO> getEmployeeById(String employeeId){
+        return employeeRepository.findByEmployeeId(employeeId).map(employee -> {
+            EmployeeWithLeaveDetailsDTO dto = new EmployeeWithLeaveDetailsDTO();
+            BeanUtils.copyProperties(employee, dto);
+            
+            // Get leave policy name if available
+            if (employee.getLeavePolicyId() != null) {
+                try {
+                    LeavePolicyModel leavePolicy = leavePolicyService.getLeavePolicyById(employee.getLeavePolicyId());
+                    dto.setLeavePolicyName(leavePolicy.getName());
+                    
+                    // Get all leave type names and IDs from the policy
+                    List<String> leaveTypeNames = new ArrayList<>();
+                    List<String> leaveTypeIds = new ArrayList<>();
+                    
+                    leavePolicy.getLeaveAllocations().forEach(allocation -> {
+                        try {
+                            LeaveTypeModel leaveType = leaveTypeService.getLeaveTypeById(allocation.getLeaveTypeId());
+                            leaveTypeNames.add(leaveType.getLeaveTypeName());
+                            leaveTypeIds.add(leaveType.getLeaveTypeId());
+                        } catch (Exception e) {
+                            // Skip if leave type not found
+                        }
+                    });
+                    
+                    dto.setLeaveTypeNames(leaveTypeNames);
+                    dto.setLeaveTypeIds(leaveTypeIds);
+                } catch (Exception e) {
+                    // If leave policy not found, leave names and IDs as null
+                }
+            }
+            
+            return dto;
+        });
     }
 
 
@@ -199,7 +342,7 @@ public class EmployeeService {
     }
 
     // Update Employee
-    public EmployeeModel updateEmployee(String employeeId, EmployeeModel updatedEmployee,
+    public EmployeeWithLeaveDetailsDTO updateEmployee(String employeeId, EmployeeModel updatedEmployee,
                                         MultipartFile profileImage,
                                         MultipartFile aadharImage,
                                         MultipartFile panImage,
@@ -247,6 +390,15 @@ public class EmployeeService {
             existingEmployee.setCurrentAddress(updatedEmployee.getCurrentAddress());
             existingEmployee.setSalaryDetails(updatedEmployee.getSalaryDetails());
             existingEmployee.setJoiningDate(updatedEmployee.getJoiningDate());
+
+            // Update leave policy based on department
+            if (updatedEmployee.getDepartment() != null && !updatedEmployee.getDepartment().isEmpty()) {
+                DepartmentModel department = departmentService.getDepartmentById(updatedEmployee.getDepartment());
+                LeavePolicyModel leavePolicy = leavePolicyService.getLeavePolicyById(department.getLeavePolicy());
+                
+                // Set the leave policy ID
+                existingEmployee.setLeavePolicyId(department.getLeavePolicy());
+            }
 
             // Update Bank Details
             if (updatedEmployee.getBankDetails() != null) {
@@ -328,7 +480,41 @@ public class EmployeeService {
             existingEmployee = setDefaultValues(existingEmployee);
             //call Attendance Service to update user for face verification
             updateEmployeeInAttendanceService(existingEmployee);
-            return employeeRepository.save(existingEmployee);
+
+            EmployeeModel savedEmployee = employeeRepository.save(existingEmployee);
+
+            // Create response DTO with leave details
+            EmployeeWithLeaveDetailsDTO response = new EmployeeWithLeaveDetailsDTO();
+            BeanUtils.copyProperties(savedEmployee, response);
+
+            // Populate leave policy and type names
+            if (savedEmployee.getLeavePolicyId() != null) {
+                try {
+                    LeavePolicyModel leavePolicy = leavePolicyService.getLeavePolicyById(savedEmployee.getLeavePolicyId());
+                    response.setLeavePolicyName(leavePolicy.getName());
+                    
+                    // Get all leave type names and IDs from the policy
+                    List<String> leaveTypeNames = new ArrayList<>();
+                    List<String> leaveTypeIds = new ArrayList<>();
+                    
+                    leavePolicy.getLeaveAllocations().forEach(allocation -> {
+                        try {
+                            LeaveTypeModel leaveType = leaveTypeService.getLeaveTypeById(allocation.getLeaveTypeId());
+                            leaveTypeNames.add(leaveType.getLeaveTypeName());
+                            leaveTypeIds.add(leaveType.getLeaveTypeId());
+                        } catch (Exception e) {
+                            // Skip if leave type not found
+                        }
+                    });
+                    
+                    response.setLeaveTypeNames(leaveTypeNames);
+                    response.setLeaveTypeIds(leaveTypeIds);
+                } catch (Exception e) {
+                    // If leave policy not found, leave names and IDs as null
+                }
+            }
+
+            return response;
         }).orElseThrow(() -> new ResourceNotFoundException("Employee with ID " + employeeId + " not found"));
     }
 
@@ -579,40 +765,64 @@ public class EmployeeService {
     // Get All Employees by Company ID with additional details
     public List<CompanyEmployeeDTO> getAllEmployeesByCompanyIdWithDetails(String companyId) {
         List<EmployeeModel> employees = employeeRepository.findByCompanyId(companyId);
-        
-        return employees.stream()
-            .map(employee -> {
-                CompanyEmployeeDTO dto = new CompanyEmployeeDTO(employee);
-                
-                // Get department name from department service
-                try {
-                    if (employee.getDepartment() != null && !employee.getDepartment().isEmpty()) {
-                        dto.setDepartmentName(departmentService.getDepartmentById(employee.getDepartment()).getName());
-                    }
-                } catch (Exception e) {
-                    dto.setDepartmentName(employee.getDepartment());
+        return employees.stream().map(employee -> {
+            CompanyEmployeeDTO dto = new CompanyEmployeeDTO(employee);
+            
+            // Get department name
+            try {
+                if (employee.getDepartment() != null && !employee.getDepartment().isEmpty()) {
+                    dto.setDepartmentName(departmentService.getDepartmentById(employee.getDepartment()).getName());
                 }
-                
-                // Get designation name from designation service
-                try {
-                    Optional<DesignationModel> designation = Optional.ofNullable(designationService.getDesignationById(employee.getDesignation()));
-                    designation.ifPresent(d -> dto.setDesignationName(d.getName()));
-                    if (designation.isEmpty()) {
-                        dto.setDesignationName(employee.getDesignation());
-                    }
-                } catch (Exception e) {
+            } catch (Exception e) {
+                dto.setDepartmentName(employee.getDepartment());
+            }
+            
+            // Get designation name
+            try {
+                Optional<DesignationModel> designation = Optional.ofNullable(designationService.getDesignationById(employee.getDesignation()));
+                designation.ifPresent(d -> dto.setDesignationName(d.getName()));
+                if (designation.isEmpty()) {
                     dto.setDesignationName(employee.getDesignation());
                 }
-                
-                // Get reporting manager name
-                if (employee.getReportingManager() != null && !employee.getReportingManager().isEmpty()) {
-                    employeeRepository.findByEmployeeId(employee.getReportingManager())
-                        .ifPresent(manager -> dto.setReportingManagerName(manager.getName()));
+            } catch (Exception e) {
+                dto.setDesignationName(employee.getDesignation());
+            }
+            
+            // Get reporting manager name
+            if (employee.getReportingManager() != null && !employee.getReportingManager().isEmpty()) {
+                employeeRepository.findByEmployeeId(employee.getReportingManager())
+                    .ifPresent(manager -> dto.setReportingManagerName(manager.getName()));
+            }
+            
+            // Get leave policy name and leave type names if available
+            if (employee.getLeavePolicyId() != null) {
+                try {
+                    LeavePolicyModel leavePolicy = leavePolicyService.getLeavePolicyById(employee.getLeavePolicyId());
+                    dto.setLeavePolicyName(leavePolicy.getName());
+                    
+                    // Get all leave type names and IDs from the policy
+                    List<String> leaveTypeNames = new ArrayList<>();
+                    List<String> leaveTypeIds = new ArrayList<>();
+                    
+                    leavePolicy.getLeaveAllocations().forEach(allocation -> {
+                        try {
+                            LeaveTypeModel leaveType = leaveTypeService.getLeaveTypeById(allocation.getLeaveTypeId());
+                            leaveTypeNames.add(leaveType.getLeaveTypeName());
+                            leaveTypeIds.add(leaveType.getLeaveTypeId());
+                        } catch (Exception e) {
+                            // Skip if leave type not found
+                        }
+                    });
+                    
+                    dto.setLeaveTypeNames(leaveTypeNames);
+                    dto.setLeaveTypeIds(leaveTypeIds);
+                } catch (Exception e) {
+                    // If leave policy not found, leave names and IDs as null
                 }
-                
-                return dto;
-            })
-            .collect(Collectors.toList());
+            }
+            
+            return dto;
+        }).collect(Collectors.toList());
     }
 
 

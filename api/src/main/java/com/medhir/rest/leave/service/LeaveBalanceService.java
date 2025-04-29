@@ -1,6 +1,7 @@
 package com.medhir.rest.leave.service;
 
 import com.medhir.rest.employee.EmployeeService;
+import com.medhir.rest.employee.dto.EmployeeWithLeaveDetailsDTO;
 import com.medhir.rest.exception.ResourceNotFoundException;
 import com.medhir.rest.leave.model.LeaveBalance;
 import com.medhir.rest.leave.repositoris.LeaveBalanceRepository;
@@ -34,7 +35,7 @@ public class LeaveBalanceService {
 
     private double calculateMonthlyLeaves(String employeeId) {
         // Get employee's department
-        var employeeOpt = employeeService.getEmployeeById(employeeId);
+        Optional<EmployeeWithLeaveDetailsDTO> employeeOpt = employeeService.getEmployeeById(employeeId);
         if (employeeOpt.isEmpty()) {
             throw new ResourceNotFoundException("Employee not found with ID: " + employeeId);
         }
@@ -74,7 +75,7 @@ public class LeaveBalanceService {
 
     public LeaveBalance getOrCreateLeaveBalance(String employeeId, String month, int year) {
         // Validate employee exists
-        var employeeOpt = employeeService.getEmployeeById(employeeId);
+        Optional<EmployeeWithLeaveDetailsDTO> employeeOpt = employeeService.getEmployeeById(employeeId);
         if (employeeOpt.isEmpty()) {
             throw new ResourceNotFoundException("Employee not found with ID: " + employeeId);
         }

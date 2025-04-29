@@ -77,6 +77,9 @@ public class EmployeeModel {
     private String permanentAddress;
     private String currentAddress;
 
+    // Leave related fields
+    private String leavePolicyId; // Stores the ID of the leave policy from department
+
     // ID Proofs Section
     @Valid
     private IdProofs idProofs;
@@ -98,28 +101,23 @@ public class EmployeeModel {
     @Getter
     @Setter
     public static class IdProofs {
-        @Pattern(regexp = "\\d{12}", message = "Aadhar number must be exactly 12 digits")
-        @Size(min = 0) // Allows empty values
+        @Pattern(regexp = "^$|\\d{12}", message = "Aadhar number must be exactly 12 digits or empty")
         private String aadharNo = "";
         private String aadharImgUrl="";
 
-        @Pattern(regexp = "[A-Z]{5}[0-9]{4}[A-Z]{1}", message = "Invalid PAN number format")
-        @Size(min = 0) // Allows empty values
+        @Pattern(regexp = "^$|[A-Z]{5}[0-9]{4}[A-Z]{1}", message = "Invalid PAN number format or empty")
         private String panNo = "";
         private String pancardImgUrl="";
 
-        @Pattern(regexp = "^[A-Z]{1}[0-9]{7}$", message = "Invalid Passport number format")
-        @Size(min = 0) // Allows empty values
+        @Pattern(regexp = "^$|^[A-Z]{1}[0-9]{7}$", message = "Invalid Passport number format or empty")
         private String passport = "";
         private String passportImgUrl="";
 
-        @Pattern(regexp = "^[A-Za-z0-9]{8,16}$", message = "Invalid Driving License format")
-        @Size(min = 0) // Allows empty values
+        @Pattern(regexp = "^$|^[A-Za-z0-9]{8,16}$", message = "Invalid Driving License format or empty")
         private String drivingLicense = "";
         private String drivingLicenseImgUrl="";
 
-        @Pattern(regexp = "^[A-Z]{3}[0-9]{7}$", message = "Invalid Voter ID format")
-        @Size(min = 0) // Allows empty values
+        @Pattern(regexp = "^$|^[A-Z]{3}[0-9]{7}$", message = "Invalid Voter ID format or empty")
         private String voterId = "";
         private String voterIdImgUrl="";
     }

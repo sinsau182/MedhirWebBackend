@@ -5,7 +5,6 @@ import com.medhir.rest.employee.EmployeeModel;
 import com.medhir.rest.employee.EmployeeService;
 import com.medhir.rest.model.UserModel;
 import com.medhir.rest.service.UserService;
-import com.medhir.rest.dto.UserCompanyDTO;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
