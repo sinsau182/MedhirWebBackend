@@ -1,8 +1,6 @@
 package com.medhir.rest.leave.dto;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
-import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
-import com.medhir.rest.leave.model.ShiftType;
 import lombok.Data;
 import org.springframework.data.annotation.CreatedDate;
 

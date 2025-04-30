@@ -1,5 +1,6 @@
 package com.medhir.rest.settings.designations;
 
+import com.medhir.rest.dto.CompanyDesignationDTO;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
@@ -48,5 +49,11 @@ public class DesignationController {
     public ResponseEntity<Void> deleteDesignation(@PathVariable String id) {
         designationService.deleteDesignation(id);
         return ResponseEntity.ok().build();
+    }
+
+    @GetMapping("/company/{companyId}")
+    public ResponseEntity<List<CompanyDesignationDTO>> getAllDesignationsByCompanyId(@PathVariable String companyId) {
+        List<CompanyDesignationDTO> designations = designationService.getAllDesignationsByCompanyId(companyId);
+        return ResponseEntity.ok(designations);
     }
 }

@@ -2,19 +2,14 @@ package com.medhir.rest.service;
 
 import com.medhir.rest.exception.DuplicateResourceException;
 import com.medhir.rest.exception.ResourceNotFoundException;
-import com.medhir.rest.model.CompanyModel;
 import com.medhir.rest.model.UserModel;
+import com.medhir.rest.repository.ModuleRepository;
 import com.medhir.rest.repository.UserRepository;
 import com.medhir.rest.utils.GeneratedId;
-import com.medhir.rest.model.ModuleModel;
-import com.medhir.rest.repository.ModuleRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
-import java.util.Set;
-import java.util.stream.Collectors;
-import java.util.Optional;
 
 @Service
 public class UserService {

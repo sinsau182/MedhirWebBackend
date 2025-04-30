@@ -24,15 +24,16 @@ public class LeaveApplicationController {
     public ResponseEntity<?> applyLeave(@Valid @RequestBody LeaveModel request) {
         try {
             // Validate leave type for regular leave
-//            if ("Leave".equals(request.getLeaveName()) && (request.getLeaveType() == null || request.getLeaveType().isEmpty())) {
-//                return ResponseEntity.badRequest().body(Map.of("error", "Leave type is required for regular leave"));
-//            }
+            // if ("Leave".equals(request.getLeaveName()) && (request.getLeaveType() == null
+            // || request.getLeaveType().isEmpty())) {
+            // return ResponseEntity.badRequest().body(Map.of("error", "Leave type is
+            // required for regular leave"));
+            // }
             request.setLeaveType("Annual Leave");
 
             LeaveModel leave = leaveApplicationService.applyLeave(request);
             return ResponseEntity.ok(Map.of(
-                    "message", "Leave application submitted successfully"
-            ));
+                    "message", "Leave application submitted successfully"));
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
         }
@@ -43,8 +44,7 @@ public class LeaveApplicationController {
         try {
             LeaveModel leave = leaveApplicationService.updateLeaveStatus(request);
             return ResponseEntity.ok(Map.of(
-                    "message", "Leave status updated successfully"
-            ));
+                    "message", "Leave status updated successfully"));
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
         }
@@ -66,8 +66,7 @@ public class LeaveApplicationController {
             List<LeaveWithEmployeeDetails> leaves = leaveApplicationService.getLeavesByStatus(companyId, status);
             return ResponseEntity.ok(Map.of(
                     "count", leaves.size(),
-                    "leaves", leaves
-            ));
+                    "leaves", leaves));
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
         }

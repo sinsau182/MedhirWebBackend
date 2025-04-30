@@ -1,11 +1,12 @@
 package com.medhir.rest.employee;
 
 import com.medhir.rest.auth.service.EmployeeAuthService;
-import com.medhir.rest.dto.RegisterAdminRequest;
-import com.medhir.rest.dto.UserCompanyDTO;
 import com.medhir.rest.dto.CompanyEmployeeDTO;
 import com.medhir.rest.dto.ManagerEmployeeDTO;
+import com.medhir.rest.dto.RegisterAdminRequest;
+import com.medhir.rest.dto.UserCompanyDTO;
 import com.medhir.rest.employee.dto.EmployeeAttendanceDetailsDTO;
+import com.medhir.rest.employee.dto.EmployeeWithLeaveDetailsDTO;
 import com.medhir.rest.exception.DuplicateResourceException;
 import com.medhir.rest.exception.ResourceNotFoundException;
 import com.medhir.rest.model.CompanyModel;
@@ -13,10 +14,16 @@ import com.medhir.rest.model.ModuleModel;
 import com.medhir.rest.repository.ModuleRepository;
 import com.medhir.rest.service.CompanyService;
 import com.medhir.rest.service.MinioService;
+import com.medhir.rest.settings.department.DepartmentModel;
+import com.medhir.rest.settings.department.DepartmentService;
 import com.medhir.rest.settings.designations.DesignationModel;
 import com.medhir.rest.settings.designations.DesignationService;
-import com.medhir.rest.settings.department.DepartmentService;
+import com.medhir.rest.settings.leaveSettings.leaveType.LeaveTypeModel;
+import com.medhir.rest.settings.leaveSettings.leaveType.LeaveTypeService;
+import com.medhir.rest.settings.leaveSettings.leavepolicy.LeavePolicyModel;
+import com.medhir.rest.settings.leaveSettings.leavepolicy.LeavePolicyService;
 import com.medhir.rest.utils.GeneratedId;
+import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.*;
@@ -26,14 +33,20 @@ import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 @Service
 public class EmployeeService {
 
     @Value("${auth.service.url}")
-    String authServiceUrl ;
+    String authServiceUrl;
     @Value("${attendance.service.url}")
     String attendanceServiceUrl;
 
@@ -53,31 +66,44 @@ public class EmployeeService {
     private DepartmentService departmentService;
     @Autowired
     private EmployeeAuthService employeeAuthService;
+    @Autowired
+    private LeavePolicyService leavePolicyService;
+    @Autowired
+    private LeaveTypeService leaveTypeService;
 
-    //Create Employee
-    public EmployeeModel createEmployee(EmployeeModel employee,
-                                        MultipartFile profileImage,
-                                        MultipartFile aadharImage,
-                                        MultipartFile panImage,
-                                        MultipartFile passportImage,
-                                        MultipartFile drivingLicenseImage,
-                                        MultipartFile voterIdImage,
-                                        MultipartFile passbookImage) {
-        if(employeeRepository.findByEmployeeId(employee.getEmployeeId()).isPresent()){
+    // Create Employee
+    public EmployeeWithLeaveDetailsDTO createEmployee(EmployeeModel employee,
+            MultipartFile profileImage,
+            MultipartFile aadharImage,
+            MultipartFile panImage,
+            MultipartFile passportImage,
+            MultipartFile drivingLicenseImage,
+            MultipartFile voterIdImage,
+            MultipartFile passbookImage) {
+        if (employeeRepository.findByEmployeeId(employee.getEmployeeId()).isPresent()) {
             throw new DuplicateResourceException("Employee ID already exists: " + employee.getEmployeeId());
         }
-        if(employee.getEmailPersonal() != null){
-            if(employeeRepository.findByEmailPersonal(employee.getEmailPersonal()).isPresent()){
+        if (employee.getEmailPersonal() != null) {
+            if (employeeRepository.findByEmailPersonal(employee.getEmailPersonal()).isPresent()) {
                 throw new DuplicateResourceException("Email already exists: " + employee.getEmailPersonal());
             }
         }
 
-        if(employeeRepository.findByPhone(employee.getPhone()).isPresent()){
+        if (employeeRepository.findByPhone(employee.getPhone()).isPresent()) {
             throw new DuplicateResourceException("Phone number already exists : " + employee.getPhone());
         }
 
         // Set role as EMPLOYEE
         employee.setRoles(Set.of("EMPLOYEE"));
+
+        // Set leave policy based on department
+        if (employee.getDepartment() != null && !employee.getDepartment().isEmpty()) {
+            DepartmentModel department = departmentService.getDepartmentById(employee.getDepartment());
+            LeavePolicyModel leavePolicy = leavePolicyService.getLeavePolicyById(department.getLeavePolicy());
+
+            // Set the leave policy ID
+            employee.setLeavePolicyId(department.getLeavePolicy());
+        }
 
         employee = setDefaultValues(employee);
 
@@ -86,26 +112,63 @@ public class EmployeeService {
             employee.setEmployeeImgUrl(minioService.uploadProfileImage(profileImage, employee.getEmployeeId()));
         }
         if (aadharImage != null) {
-            employee.getIdProofs().setAadharImgUrl(minioService.uploadDocumentsImg(aadharImage, employee.getEmployeeId()));
+            employee.getIdProofs()
+                    .setAadharImgUrl(minioService.uploadDocumentsImg(aadharImage, employee.getEmployeeId()));
         }
         if (panImage != null) {
-            employee.getIdProofs().setPancardImgUrl(minioService.uploadDocumentsImg(panImage, employee.getEmployeeId()));
+            employee.getIdProofs()
+                    .setPancardImgUrl(minioService.uploadDocumentsImg(panImage, employee.getEmployeeId()));
         }
         if (passportImage != null) {
-            employee.getIdProofs().setPassportImgUrl(minioService.uploadDocumentsImg(passportImage, employee.getEmployeeId()));
+            employee.getIdProofs()
+                    .setPassportImgUrl(minioService.uploadDocumentsImg(passportImage, employee.getEmployeeId()));
         }
         if (drivingLicenseImage != null) {
-            employee.getIdProofs().setDrivingLicenseImgUrl(minioService.uploadDocumentsImg(drivingLicenseImage, employee.getEmployeeId()));
+            employee.getIdProofs().setDrivingLicenseImgUrl(
+                    minioService.uploadDocumentsImg(drivingLicenseImage, employee.getEmployeeId()));
         }
         if (voterIdImage != null) {
-            employee.getIdProofs().setVoterIdImgUrl(minioService.uploadDocumentsImg(voterIdImage, employee.getEmployeeId()));
+            employee.getIdProofs()
+                    .setVoterIdImgUrl(minioService.uploadDocumentsImg(voterIdImage, employee.getEmployeeId()));
         }
         if (passbookImage != null) {
-            employee.getBankDetails().setPassbookImgUrl(minioService.uploadDocumentsImg(passbookImage, employee.getEmployeeId()));
+            employee.getBankDetails()
+                    .setPassbookImgUrl(minioService.uploadDocumentsImg(passbookImage, employee.getEmployeeId()));
         }
 
         employee.setEmployeeId(generateEmployeeId(employee.getCompanyId()));
         EmployeeModel savedEmployee = employeeRepository.save(employee);
+
+        // Create response DTO with leave details
+        EmployeeWithLeaveDetailsDTO response = new EmployeeWithLeaveDetailsDTO();
+        BeanUtils.copyProperties(savedEmployee, response);
+
+        // Populate leave policy and type names
+        if (savedEmployee.getLeavePolicyId() != null) {
+            try {
+                LeavePolicyModel leavePolicy = leavePolicyService.getLeavePolicyById(savedEmployee.getLeavePolicyId());
+                response.setLeavePolicyName(leavePolicy.getName());
+
+                // Get all leave type names and IDs from the policy
+                List<String> leaveTypeNames = new ArrayList<>();
+                List<String> leaveTypeIds = new ArrayList<>();
+
+                leavePolicy.getLeaveAllocations().forEach(allocation -> {
+                    try {
+                        LeaveTypeModel leaveType = leaveTypeService.getLeaveTypeById(allocation.getLeaveTypeId());
+                        leaveTypeNames.add(leaveType.getLeaveTypeName());
+                        leaveTypeIds.add(leaveType.getLeaveTypeId());
+                    } catch (Exception e) {
+                        // Skip if leave type not found
+                    }
+                });
+
+                response.setLeaveTypeNames(leaveTypeNames);
+                response.setLeaveTypeIds(leaveTypeIds);
+            } catch (Exception e) {
+                // If leave policy not found, leave names and IDs as null
+            }
+        }
 
         // Register employee for login with email and phone number as password
         if (employee.getPhone() != null && !employee.getPhone().isEmpty() &&
@@ -114,77 +177,168 @@ public class EmployeeService {
             employeeAuthService.registerEmployee(
                     savedEmployee.getEmployeeId(),
                     savedEmployee.getEmailPersonal(),
-                    savedEmployee.getPhone()
-            );
+                    savedEmployee.getPhone());
         }
-
-
 
         // call Attendance Service to register user for face verification
         registerUserInAttendanceService(savedEmployee);
 
-
-
-        return savedEmployee;
+        return response;
     }
 
     // Get All Employees
-    public List<EmployeeModel> getAllEmployees() {
-        return employeeRepository.findAll();
+    public List<EmployeeWithLeaveDetailsDTO> getAllEmployees() {
+        List<EmployeeModel> employees = employeeRepository.findAll();
+        return employees.stream().map(employee -> {
+            EmployeeWithLeaveDetailsDTO dto = new EmployeeWithLeaveDetailsDTO();
+            BeanUtils.copyProperties(employee, dto);
+
+            // Get leave policy name if available
+            if (employee.getLeavePolicyId() != null) {
+                try {
+                    LeavePolicyModel leavePolicy = leavePolicyService.getLeavePolicyById(employee.getLeavePolicyId());
+                    dto.setLeavePolicyName(leavePolicy.getName());
+
+                    // Get all leave type names and IDs from the policy
+                    List<String> leaveTypeNames = new ArrayList<>();
+                    List<String> leaveTypeIds = new ArrayList<>();
+
+                    leavePolicy.getLeaveAllocations().forEach(allocation -> {
+                        try {
+                            LeaveTypeModel leaveType = leaveTypeService.getLeaveTypeById(allocation.getLeaveTypeId());
+                            leaveTypeNames.add(leaveType.getLeaveTypeName());
+                            leaveTypeIds.add(leaveType.getLeaveTypeId());
+                        } catch (Exception e) {
+                            // Skip if leave type not found
+                        }
+                    });
+
+                    dto.setLeaveTypeNames(leaveTypeNames);
+                    dto.setLeaveTypeIds(leaveTypeIds);
+                } catch (Exception e) {
+                    // If leave policy not found, leave names and IDs as null
+                }
+            }
+
+            return dto;
+        }).collect(Collectors.toList());
     }
 
     // Get All Employees with minimal fields (name and employeeId)
     public List<Map<String, String>> getAllEmployeesMinimal() {
         List<EmployeeModel> employees = employeeRepository.findAll();
         return employees.stream()
-            .map(employee -> Map.of(
-                "name", employee.getName(),
-                "employeeId", employee.getEmployeeId()
-            ))
-            .collect(Collectors.toList());
+                .map(employee -> Map.of(
+                        "name", employee.getName(),
+                        "employeeId", employee.getEmployeeId()))
+                .collect(Collectors.toList());
     }
 
     // Get All Employees by Company ID
-    public List<EmployeeModel> getAllEmployeesByCompanyId(String companyId) {
-        return employeeRepository.findByCompanyId(companyId);
-    }
+    public List<EmployeeWithLeaveDetailsDTO> getEmployeesByCompanyId(String companyId) {
+        List<EmployeeModel> employees = employeeRepository.findByCompanyId(companyId);
+        return employees.stream().map(employee -> {
+            EmployeeWithLeaveDetailsDTO dto = new EmployeeWithLeaveDetailsDTO();
+            BeanUtils.copyProperties(employee, dto);
 
+            // Get leave policy name if available
+            if (employee.getLeavePolicyId() != null) {
+                try {
+                    LeavePolicyModel leavePolicy = leavePolicyService.getLeavePolicyById(employee.getLeavePolicyId());
+                    dto.setLeavePolicyName(leavePolicy.getName());
+
+                    // Get all leave type names and IDs from the policy
+                    List<String> leaveTypeNames = new ArrayList<>();
+                    List<String> leaveTypeIds = new ArrayList<>();
+
+                    leavePolicy.getLeaveAllocations().forEach(allocation -> {
+                        try {
+                            LeaveTypeModel leaveType = leaveTypeService.getLeaveTypeById(allocation.getLeaveTypeId());
+                            leaveTypeNames.add(leaveType.getLeaveTypeName());
+                            leaveTypeIds.add(leaveType.getLeaveTypeId());
+                        } catch (Exception e) {
+                            // Skip if leave type not found
+                        }
+                    });
+
+                    dto.setLeaveTypeNames(leaveTypeNames);
+                    dto.setLeaveTypeIds(leaveTypeIds);
+                } catch (Exception e) {
+                    // If leave policy not found, leave names and IDs as null
+                }
+            }
+
+            return dto;
+        }).collect(Collectors.toList());
+    }
 
     // Get Employee By EmployeeId
-    public Optional<EmployeeModel> getEmployeeById(String employeeId){
-        return employeeRepository.findByEmployeeId(employeeId);
+    public Optional<EmployeeWithLeaveDetailsDTO> getEmployeeById(String employeeId) {
+        return employeeRepository.findByEmployeeId(employeeId).map(employee -> {
+            EmployeeWithLeaveDetailsDTO dto = new EmployeeWithLeaveDetailsDTO();
+            BeanUtils.copyProperties(employee, dto);
+
+            // Get leave policy name if available
+            if (employee.getLeavePolicyId() != null) {
+                try {
+                    LeavePolicyModel leavePolicy = leavePolicyService.getLeavePolicyById(employee.getLeavePolicyId());
+                    dto.setLeavePolicyName(leavePolicy.getName());
+
+                    // Get all leave type names and IDs from the policy
+                    List<String> leaveTypeNames = new ArrayList<>();
+                    List<String> leaveTypeIds = new ArrayList<>();
+
+                    leavePolicy.getLeaveAllocations().forEach(allocation -> {
+                        try {
+                            LeaveTypeModel leaveType = leaveTypeService.getLeaveTypeById(allocation.getLeaveTypeId());
+                            leaveTypeNames.add(leaveType.getLeaveTypeName());
+                            leaveTypeIds.add(leaveType.getLeaveTypeId());
+                        } catch (Exception e) {
+                            // Skip if leave type not found
+                        }
+                    });
+
+                    dto.setLeaveTypeNames(leaveTypeNames);
+                    dto.setLeaveTypeIds(leaveTypeIds);
+                } catch (Exception e) {
+                    // If leave policy not found, leave names and IDs as null
+                }
+            }
+
+            return dto;
+        });
     }
 
-
     // Get Employees by Manager
-    public List<ManagerEmployeeDTO> getEmployeesByManager(String managerId){
+    public List<ManagerEmployeeDTO> getEmployeesByManager(String managerId) {
         List<EmployeeModel> employees = employeeRepository.findByReportingManager(managerId);
-        
+
         return employees.stream()
-            .map(employee -> {
-                ManagerEmployeeDTO dto = new ManagerEmployeeDTO();
-                dto.setEmployeeId(employee.getEmployeeId());
-                dto.setName(employee.getName());
-                dto.setFathersName(employee.getFathersName());
-                dto.setPhone(employee.getPhone());
-                dto.setEmailOfficial(employee.getEmailOfficial());
-                dto.setJoiningDate(employee.getJoiningDate());
-                dto.setCurrentAddress(employee.getCurrentAddress());
-                
-                // Get designation name from designation service
-                try {
-                    Optional<DesignationModel> designation = Optional.ofNullable(designationService.getDesignationById(employee.getDesignation()));
-                    designation.ifPresent(d -> dto.setDesignationName(d.getName()));
-                    if (designation.isEmpty()) {
+                .map(employee -> {
+                    ManagerEmployeeDTO dto = new ManagerEmployeeDTO();
+                    dto.setEmployeeId(employee.getEmployeeId());
+                    dto.setName(employee.getName());
+                    dto.setFathersName(employee.getFathersName());
+                    dto.setPhone(employee.getPhone());
+                    dto.setEmailOfficial(employee.getEmailOfficial());
+                    dto.setJoiningDate(employee.getJoiningDate());
+                    dto.setCurrentAddress(employee.getCurrentAddress());
+
+                    // Get designation name from designation service
+                    try {
+                        Optional<DesignationModel> designation = Optional
+                                .ofNullable(designationService.getDesignationById(employee.getDesignation()));
+                        designation.ifPresent(d -> dto.setDesignationName(d.getName()));
+                        if (designation.isEmpty()) {
+                            dto.setDesignationName(employee.getDesignation());
+                        }
+                    } catch (Exception e) {
                         dto.setDesignationName(employee.getDesignation());
                     }
-                } catch (Exception e) {
-                    dto.setDesignationName(employee.getDesignation());
-                }
-                
-                return dto;
-            })
-            .collect(Collectors.toList());
+
+                    return dto;
+                })
+                .collect(Collectors.toList());
     }
 
     // Delete Employee by Employee ID
@@ -193,37 +347,41 @@ public class EmployeeService {
         if (employeeOpt.isEmpty()) {
             throw new ResourceNotFoundException("Employee not found with ID: " + employeeId);
         }
-        
+
         // Delete the employee
         employeeRepository.delete(employeeOpt.get());
     }
 
     // Update Employee
-    public EmployeeModel updateEmployee(String employeeId, EmployeeModel updatedEmployee,
-                                        MultipartFile profileImage,
-                                        MultipartFile aadharImage,
-                                        MultipartFile panImage,
-                                        MultipartFile passportImage,
-                                        MultipartFile drivingLicenseImage,
-                                        MultipartFile voterIdImage,
-                                        MultipartFile passbookImage) {
+    public EmployeeWithLeaveDetailsDTO updateEmployee(String employeeId, EmployeeModel updatedEmployee,
+            MultipartFile profileImage,
+            MultipartFile aadharImage,
+            MultipartFile panImage,
+            MultipartFile passportImage,
+            MultipartFile drivingLicenseImage,
+            MultipartFile voterIdImage,
+            MultipartFile passbookImage) {
         return employeeRepository.findByEmployeeId(employeeId).map(existingEmployee -> {
 
-            Optional<EmployeeModel> employeeIDExists = employeeRepository.findByEmployeeId(updatedEmployee.getEmployeeId());
-            if(employeeIDExists.isPresent() && !employeeIDExists.get().getEmployeeId().equals(employeeId)){
+            Optional<EmployeeModel> employeeIDExists = employeeRepository
+                    .findByEmployeeId(updatedEmployee.getEmployeeId());
+            if (employeeIDExists.isPresent() && !employeeIDExists.get().getEmployeeId().equals(employeeId)) {
                 throw new DuplicateResourceException("Employee ID already exists: " + updatedEmployee.getEmployeeId());
             }
 
             if (updatedEmployee.getEmailPersonal() != null) {
-                Optional<EmployeeModel> emailExists = employeeRepository.findByEmailPersonal(updatedEmployee.getEmailPersonal());
+                Optional<EmployeeModel> emailExists = employeeRepository
+                        .findByEmailPersonal(updatedEmployee.getEmailPersonal());
                 if (emailExists.isPresent() && !emailExists.get().getEmployeeId().equals(employeeId)) {
-                    throw new DuplicateResourceException(emailExists.get().getEmailPersonal() + " : Email is already in use by another Employee");
+                    throw new DuplicateResourceException(
+                            emailExists.get().getEmailPersonal() + " : Email is already in use by another Employee");
                 }
             }
 
             Optional<EmployeeModel> phoneExists = employeeRepository.findByPhone(updatedEmployee.getPhone());
             if (phoneExists.isPresent() && !phoneExists.get().getEmployeeId().equals(employeeId)) {
-                throw new DuplicateResourceException(phoneExists.get().getPhone() + " : Phone number is already in use by another Employee");
+                throw new DuplicateResourceException(
+                        phoneExists.get().getPhone() + " : Phone number is already in use by another Employee");
             }
 
             // Update basic details
@@ -248,18 +406,29 @@ public class EmployeeService {
             existingEmployee.setSalaryDetails(updatedEmployee.getSalaryDetails());
             existingEmployee.setJoiningDate(updatedEmployee.getJoiningDate());
 
+            // Update leave policy based on department
+            if (updatedEmployee.getDepartment() != null && !updatedEmployee.getDepartment().isEmpty()) {
+                DepartmentModel department = departmentService.getDepartmentById(updatedEmployee.getDepartment());
+                LeavePolicyModel leavePolicy = leavePolicyService.getLeavePolicyById(department.getLeavePolicy());
+
+                // Set the leave policy ID
+                existingEmployee.setLeavePolicyId(department.getLeavePolicy());
+            }
+
             // Update Bank Details
             if (updatedEmployee.getBankDetails() != null) {
                 if (existingEmployee.getBankDetails() == null) {
                     existingEmployee.setBankDetails(new EmployeeModel.BankDetails());
                 }
                 existingEmployee.getBankDetails().setAccountNumber(updatedEmployee.getBankDetails().getAccountNumber());
-                existingEmployee.getBankDetails().setAccountHolderName(updatedEmployee.getBankDetails().getAccountHolderName());
+                existingEmployee.getBankDetails()
+                        .setAccountHolderName(updatedEmployee.getBankDetails().getAccountHolderName());
                 existingEmployee.getBankDetails().setIfscCode(updatedEmployee.getBankDetails().getIfscCode());
                 existingEmployee.getBankDetails().setBankName(updatedEmployee.getBankDetails().getBankName());
                 existingEmployee.getBankDetails().setBranchName(updatedEmployee.getBankDetails().getBranchName());
                 existingEmployee.getBankDetails().setUpiId(updatedEmployee.getBankDetails().getUpiId());
-                existingEmployee.getBankDetails().setUpiPhoneNumber(updatedEmployee.getBankDetails().getUpiPhoneNumber());
+                existingEmployee.getBankDetails()
+                        .setUpiPhoneNumber(updatedEmployee.getBankDetails().getUpiPhoneNumber());
             }
 
             // Update ID Proofs
@@ -284,13 +453,16 @@ public class EmployeeService {
                 existingEmployee.getSalaryDetails().setBasicSalary(updatedEmployee.getSalaryDetails().getBasicSalary());
                 existingEmployee.getSalaryDetails().setHra(updatedEmployee.getSalaryDetails().getHra());
                 existingEmployee.getSalaryDetails().setAllowances(updatedEmployee.getSalaryDetails().getAllowances());
-                existingEmployee.getSalaryDetails().setEmployerPfContribution(updatedEmployee.getSalaryDetails().getEmployerPfContribution());
-                existingEmployee.getSalaryDetails().setEmployeePfContribution(updatedEmployee.getSalaryDetails().getEmployeePfContribution());
+                existingEmployee.getSalaryDetails()
+                        .setEmployerPfContribution(updatedEmployee.getSalaryDetails().getEmployerPfContribution());
+                existingEmployee.getSalaryDetails()
+                        .setEmployeePfContribution(updatedEmployee.getSalaryDetails().getEmployeePfContribution());
             }
 
             // Preserve existing images or update if a new image is uploaded
             if (profileImage != null) {
-                existingEmployee.setEmployeeImgUrl(minioService.uploadProfileImage(profileImage, existingEmployee.getEmployeeId()));
+                existingEmployee.setEmployeeImgUrl(
+                        minioService.uploadProfileImage(profileImage, existingEmployee.getEmployeeId()));
             }
 
             if (existingEmployee.getIdProofs() == null) {
@@ -298,23 +470,28 @@ public class EmployeeService {
             }
 
             if (aadharImage != null) {
-                existingEmployee.getIdProofs().setAadharImgUrl(minioService.uploadDocumentsImg(aadharImage, existingEmployee.getEmployeeId()));
+                existingEmployee.getIdProofs().setAadharImgUrl(
+                        minioService.uploadDocumentsImg(aadharImage, existingEmployee.getEmployeeId()));
             }
 
             if (panImage != null) {
-                existingEmployee.getIdProofs().setPancardImgUrl(minioService.uploadDocumentsImg(panImage, existingEmployee.getEmployeeId()));
+                existingEmployee.getIdProofs()
+                        .setPancardImgUrl(minioService.uploadDocumentsImg(panImage, existingEmployee.getEmployeeId()));
             }
 
             if (passportImage != null) {
-                existingEmployee.getIdProofs().setPassportImgUrl(minioService.uploadDocumentsImg(passportImage, existingEmployee.getEmployeeId()));
+                existingEmployee.getIdProofs().setPassportImgUrl(
+                        minioService.uploadDocumentsImg(passportImage, existingEmployee.getEmployeeId()));
             }
 
             if (drivingLicenseImage != null) {
-                existingEmployee.getIdProofs().setDrivingLicenseImgUrl(minioService.uploadDocumentsImg(drivingLicenseImage, existingEmployee.getEmployeeId()));
+                existingEmployee.getIdProofs().setDrivingLicenseImgUrl(
+                        minioService.uploadDocumentsImg(drivingLicenseImage, existingEmployee.getEmployeeId()));
             }
 
             if (voterIdImage != null) {
-                existingEmployee.getIdProofs().setVoterIdImgUrl(minioService.uploadDocumentsImg(voterIdImage, existingEmployee.getEmployeeId()));
+                existingEmployee.getIdProofs().setVoterIdImgUrl(
+                        minioService.uploadDocumentsImg(voterIdImage, existingEmployee.getEmployeeId()));
             }
 
             if (existingEmployee.getBankDetails() == null) {
@@ -322,78 +499,140 @@ public class EmployeeService {
             }
 
             if (passbookImage != null) {
-                existingEmployee.getBankDetails().setPassbookImgUrl(minioService.uploadDocumentsImg(passbookImage, existingEmployee.getEmployeeId()));
+                existingEmployee.getBankDetails().setPassbookImgUrl(
+                        minioService.uploadDocumentsImg(passbookImage, existingEmployee.getEmployeeId()));
             }
 
             existingEmployee = setDefaultValues(existingEmployee);
-            //call Attendance Service to update user for face verification
+            // call Attendance Service to update user for face verification
             updateEmployeeInAttendanceService(existingEmployee);
-            return employeeRepository.save(existingEmployee);
+
+            EmployeeModel savedEmployee = employeeRepository.save(existingEmployee);
+
+            // Create response DTO with leave details
+            EmployeeWithLeaveDetailsDTO response = new EmployeeWithLeaveDetailsDTO();
+            BeanUtils.copyProperties(savedEmployee, response);
+
+            // Populate leave policy and type names
+            if (savedEmployee.getLeavePolicyId() != null) {
+                try {
+                    LeavePolicyModel leavePolicy = leavePolicyService
+                            .getLeavePolicyById(savedEmployee.getLeavePolicyId());
+                    response.setLeavePolicyName(leavePolicy.getName());
+
+                    // Get all leave type names and IDs from the policy
+                    List<String> leaveTypeNames = new ArrayList<>();
+                    List<String> leaveTypeIds = new ArrayList<>();
+
+                    leavePolicy.getLeaveAllocations().forEach(allocation -> {
+                        try {
+                            LeaveTypeModel leaveType = leaveTypeService.getLeaveTypeById(allocation.getLeaveTypeId());
+                            leaveTypeNames.add(leaveType.getLeaveTypeName());
+                            leaveTypeIds.add(leaveType.getLeaveTypeId());
+                        } catch (Exception e) {
+                            // Skip if leave type not found
+                        }
+                    });
+
+                    response.setLeaveTypeNames(leaveTypeNames);
+                    response.setLeaveTypeIds(leaveTypeIds);
+                } catch (Exception e) {
+                    // If leave policy not found, leave names and IDs as null
+                }
+            }
+
+            return response;
         }).orElseThrow(() -> new ResourceNotFoundException("Employee with ID " + employeeId + " not found"));
     }
 
-
-
     // Set default values for missing fields
     private EmployeeModel setDefaultValues(EmployeeModel employee) {
-        if (employee.getName() == null) employee.setName("");
-        if (employee.getDesignation() == null) employee.setDesignation("");
-        if (employee.getEmailPersonal() == null) employee.setEmailPersonal("");
-        if (employee.getPhone() == null) employee.setPhone("");
-        if (employee.getAlternatePhone() == null) employee.setAlternatePhone("");
-        if (employee.getDepartment() == null) employee.setDepartment("");
-        if (employee.getGender() == null) employee.setGender("");
-        if (employee.getReportingManager() == null) employee.setReportingManager("");
-        if (employee.getPermanentAddress() == null) employee.setPermanentAddress("");
-        if (employee.getCurrentAddress() == null) employee.setCurrentAddress("");
+        if (employee.getName() == null)
+            employee.setName("");
+        if (employee.getDesignation() == null)
+            employee.setDesignation("");
+        if (employee.getEmailPersonal() == null)
+            employee.setEmailPersonal("");
+        if (employee.getPhone() == null)
+            employee.setPhone("");
+        if (employee.getAlternatePhone() == null)
+            employee.setAlternatePhone("");
+        if (employee.getDepartment() == null)
+            employee.setDepartment("");
+        if (employee.getGender() == null)
+            employee.setGender("");
+        if (employee.getReportingManager() == null)
+            employee.setReportingManager("");
+        if (employee.getPermanentAddress() == null)
+            employee.setPermanentAddress("");
+        if (employee.getCurrentAddress() == null)
+            employee.setCurrentAddress("");
 
         // ID Proofs
         if (employee.getIdProofs() == null) {
             employee.setIdProofs(new EmployeeModel.IdProofs());
         } else {
-            if (employee.getIdProofs().getAadharNo() == null) employee.getIdProofs().setAadharNo("");
-            if (employee.getIdProofs().getPanNo() == null) employee.getIdProofs().setPanNo("");
-            if (employee.getIdProofs().getPassport() == null) employee.getIdProofs().setPassport("");
-            if (employee.getIdProofs().getDrivingLicense() == null) employee.getIdProofs().setDrivingLicense("");
-            if (employee.getIdProofs().getVoterId() == null) employee.getIdProofs().setVoterId("");
+            if (employee.getIdProofs().getAadharNo() == null)
+                employee.getIdProofs().setAadharNo("");
+            if (employee.getIdProofs().getPanNo() == null)
+                employee.getIdProofs().setPanNo("");
+            if (employee.getIdProofs().getPassport() == null)
+                employee.getIdProofs().setPassport("");
+            if (employee.getIdProofs().getDrivingLicense() == null)
+                employee.getIdProofs().setDrivingLicense("");
+            if (employee.getIdProofs().getVoterId() == null)
+                employee.getIdProofs().setVoterId("");
         }
 
         // Bank Details
         if (employee.getBankDetails() == null) {
             employee.setBankDetails(new EmployeeModel.BankDetails());
         } else {
-            if (employee.getBankDetails().getAccountNumber() == null) employee.getBankDetails().setAccountNumber("");
-            if (employee.getBankDetails().getAccountHolderName() == null) employee.getBankDetails().setAccountHolderName("");
-            if (employee.getBankDetails().getIfscCode() == null) employee.getBankDetails().setIfscCode("");
-            if (employee.getBankDetails().getBankName() == null) employee.getBankDetails().setBankName("");
-            if (employee.getBankDetails().getBranchName() == null) employee.getBankDetails().setBranchName("");
-            if (employee.getBankDetails().getUpiId() == null) employee.getBankDetails().setUpiId("");
-            if (employee.getBankDetails().getUpiPhoneNumber() == null) employee.getBankDetails().setUpiPhoneNumber("");
+            if (employee.getBankDetails().getAccountNumber() == null)
+                employee.getBankDetails().setAccountNumber("");
+            if (employee.getBankDetails().getAccountHolderName() == null)
+                employee.getBankDetails().setAccountHolderName("");
+            if (employee.getBankDetails().getIfscCode() == null)
+                employee.getBankDetails().setIfscCode("");
+            if (employee.getBankDetails().getBankName() == null)
+                employee.getBankDetails().setBankName("");
+            if (employee.getBankDetails().getBranchName() == null)
+                employee.getBankDetails().setBranchName("");
+            if (employee.getBankDetails().getUpiId() == null)
+                employee.getBankDetails().setUpiId("");
+            if (employee.getBankDetails().getUpiPhoneNumber() == null)
+                employee.getBankDetails().setUpiPhoneNumber("");
         }
 
         // Salary Details
         if (employee.getSalaryDetails() == null) {
             employee.setSalaryDetails(new EmployeeModel.SalaryDetails());
         } else {
-            if (employee.getSalaryDetails().getAnnualCtc() == null) employee.getSalaryDetails().setAnnualCtc(0.0);
-            if (employee.getSalaryDetails().getMonthlyCtc() == null) employee.getSalaryDetails().setMonthlyCtc(0.0);
-            if (employee.getSalaryDetails().getBasicSalary() == null) employee.getSalaryDetails().setBasicSalary(0.0);
-            if (employee.getSalaryDetails().getHra() == null) employee.getSalaryDetails().setHra(0.0);
-            if (employee.getSalaryDetails().getAllowances() == null) employee.getSalaryDetails().setAllowances(0.0);
-            if (employee.getSalaryDetails().getEmployerPfContribution() == null) employee.getSalaryDetails().setEmployerPfContribution(0.0);
-            if (employee.getSalaryDetails().getEmployeePfContribution() == null) employee.getSalaryDetails().setEmployeePfContribution(0.0);
+            if (employee.getSalaryDetails().getAnnualCtc() == null)
+                employee.getSalaryDetails().setAnnualCtc(0.0);
+            if (employee.getSalaryDetails().getMonthlyCtc() == null)
+                employee.getSalaryDetails().setMonthlyCtc(0.0);
+            if (employee.getSalaryDetails().getBasicSalary() == null)
+                employee.getSalaryDetails().setBasicSalary(0.0);
+            if (employee.getSalaryDetails().getHra() == null)
+                employee.getSalaryDetails().setHra(0.0);
+            if (employee.getSalaryDetails().getAllowances() == null)
+                employee.getSalaryDetails().setAllowances(0.0);
+            if (employee.getSalaryDetails().getEmployerPfContribution() == null)
+                employee.getSalaryDetails().setEmployerPfContribution(0.0);
+            if (employee.getSalaryDetails().getEmployeePfContribution() == null)
+                employee.getSalaryDetails().setEmployeePfContribution(0.0);
         }
 
         return employee;
     }
 
-
     private void registerUserInAuthService(EmployeeModel employee) {
 
         Map<String, String> request = new HashMap<>();
-        request.put("employeeId", employee.getEmployeeId());  // Assuming getId() returns employee ID
-        request.put("username", employee.getName());  // Username = Employee Name
-        request.put("password", employee.getName());  // Password = Employee Name
+        request.put("employeeId", employee.getEmployeeId()); // Assuming getId() returns employee ID
+        request.put("username", employee.getName()); // Username = Employee Name
+        request.put("password", employee.getName()); // Password = Employee Name
 
         RestTemplate restTemplate = new RestTemplate();
         try {
@@ -404,8 +643,8 @@ public class EmployeeService {
         }
     }
 
-
     private RestTemplate restTemplate = new RestTemplate();
+
     public void registerUserInAttendanceService(EmployeeModel employee) {
         try {
             // Create request parameters
@@ -421,16 +660,13 @@ public class EmployeeService {
             HttpEntity<MultiValueMap<String, String>> requestEntity = new HttpEntity<>(requestBody, headers);
 
             // Call the /register API
-             restTemplate.postForEntity(attendanceServiceUrl + "/register", requestEntity, String.class);
+            restTemplate.postForEntity(attendanceServiceUrl + "/register", requestEntity, String.class);
             System.out.println("User registered in Attendance Service: " + employee.getName());
 
         } catch (Exception e) {
             System.err.println("Failed to register user in Attendance Service: " + e.getMessage());
         }
     }
-
-
-
 
     public void updateEmployeeInAttendanceService(EmployeeModel employee) {
         try {
@@ -461,13 +697,11 @@ public class EmployeeService {
                     attendanceServiceUrl + "/update", HttpMethod.PUT, requestEntity, String.class);
             System.out.println("User Updated in Attendance Service: " + employee.getName());
 
-
         } catch (Exception e) {
             System.err.println("Failed to Update user in Attendance Service: " + e.getMessage());
 
         }
     }
-
 
     public String generateEmployeeId(String companyId) {
         CompanyModel company = companyService.getCompanyById(companyId)
@@ -482,22 +716,22 @@ public class EmployeeService {
     public EmployeeModel registerAdminAsEmployee(RegisterAdminRequest request) {
         // Create a new employee model
         EmployeeModel employee = new EmployeeModel();
-        
+
         // Set basic details from the request
         employee.setName(request.getName());
         employee.setEmailPersonal(request.getEmail());
         employee.setPhone(request.getPhone());
         employee.setCompanyId(request.getCompanyId());
-        
+
         // Set roles as both EMPLOYEE and HRADMIN
         employee.setRoles(Set.of("EMPLOYEE", "HRADMIN"));
-        
+
         // Generate employee ID
         employee.setEmployeeId(generateEmployeeId(request.getCompanyId()));
-        
+
         // Set default values for required fields
         employee = setDefaultValues(employee);
-        
+
         // Save the employee
         EmployeeModel savedEmployee = employeeRepository.save(employee);
 
@@ -505,12 +739,11 @@ public class EmployeeService {
         employeeAuthService.registerEmployee(
                 savedEmployee.getEmployeeId(),
                 savedEmployee.getEmailPersonal(),
-                savedEmployee.getPhone()
-        );
-        
+                savedEmployee.getPhone());
+
         // Register user in attendance service
         registerUserInAttendanceService(savedEmployee);
-        
+
         return savedEmployee;
     }
 
@@ -543,8 +776,7 @@ public class EmployeeService {
                         return new UserCompanyDTO(
                                 company.get().getCompanyId(),
                                 company.get().getName(),
-                                company.get().getColorCode()
-                        );
+                                company.get().getColorCode());
                     } catch (ResourceNotFoundException e) {
                         return new UserCompanyDTO(companyId, "Unknown Company", "Unknown Color");
                     }
@@ -555,66 +787,90 @@ public class EmployeeService {
     public List<Map<String, String>> getManagersByDepartment(String departmentId) {
         // Get all designations in the department that have isManager=true
         List<DesignationModel> managerDesignations = designationService.getDesignationsByDepartment(departmentId)
-            .stream()
-            .filter(DesignationModel::isManager)
-            .collect(Collectors.toList());
+                .stream()
+                .filter(DesignationModel::isManager)
+                .collect(Collectors.toList());
 
         // Get all designation IDs
         List<String> managerDesignationIds = managerDesignations.stream()
-            .map(DesignationModel::getDesignationId)
-            .collect(Collectors.toList());
+                .map(DesignationModel::getDesignationId)
+                .collect(Collectors.toList());
 
         // Get all employees with these designations
-        List<EmployeeModel> managers = employeeRepository.findByDepartmentAndDesignationIn(departmentId, managerDesignationIds);
+        List<EmployeeModel> managers = employeeRepository.findByDepartmentAndDesignationIn(departmentId,
+                managerDesignationIds);
 
         // Map to required format (name and employeeId)
         return managers.stream()
-            .map(manager -> Map.of(
-                "name", manager.getName(),
-                "employeeId", manager.getEmployeeId()
-            ))
-            .collect(Collectors.toList());
+                .map(manager -> Map.of(
+                        "name", manager.getName(),
+                        "employeeId", manager.getEmployeeId()))
+                .collect(Collectors.toList());
     }
 
     // Get All Employees by Company ID with additional details
     public List<CompanyEmployeeDTO> getAllEmployeesByCompanyIdWithDetails(String companyId) {
         List<EmployeeModel> employees = employeeRepository.findByCompanyId(companyId);
-        
-        return employees.stream()
-            .map(employee -> {
-                CompanyEmployeeDTO dto = new CompanyEmployeeDTO(employee);
-                
-                // Get department name from department service
-                try {
-                    if (employee.getDepartment() != null && !employee.getDepartment().isEmpty()) {
-                        dto.setDepartmentName(departmentService.getDepartmentById(employee.getDepartment()).getName());
-                    }
-                } catch (Exception e) {
-                    dto.setDepartmentName(employee.getDepartment());
+        return employees.stream().map(employee -> {
+            CompanyEmployeeDTO dto = new CompanyEmployeeDTO(employee);
+
+            // Get department name
+            try {
+                if (employee.getDepartment() != null && !employee.getDepartment().isEmpty()) {
+                    dto.setDepartmentName(departmentService.getDepartmentById(employee.getDepartment()).getName());
                 }
-                
-                // Get designation name from designation service
-                try {
-                    Optional<DesignationModel> designation = Optional.ofNullable(designationService.getDesignationById(employee.getDesignation()));
-                    designation.ifPresent(d -> dto.setDesignationName(d.getName()));
-                    if (designation.isEmpty()) {
-                        dto.setDesignationName(employee.getDesignation());
-                    }
-                } catch (Exception e) {
+            } catch (Exception e) {
+                dto.setDepartmentName(employee.getDepartment());
+            }
+
+            // Get designation name
+            try {
+                Optional<DesignationModel> designation = Optional
+                        .ofNullable(designationService.getDesignationById(employee.getDesignation()));
+                designation.ifPresent(d -> dto.setDesignationName(d.getName()));
+                if (designation.isEmpty()) {
                     dto.setDesignationName(employee.getDesignation());
                 }
-                
-                // Get reporting manager name
-                if (employee.getReportingManager() != null && !employee.getReportingManager().isEmpty()) {
-                    employeeRepository.findByEmployeeId(employee.getReportingManager())
-                        .ifPresent(manager -> dto.setReportingManagerName(manager.getName()));
-                }
-                
-                return dto;
-            })
-            .collect(Collectors.toList());
-    }
+            } catch (Exception e) {
+                dto.setDesignationName(employee.getDesignation());
+            }
 
+            // Get reporting manager name
+            if (employee.getReportingManager() != null && !employee.getReportingManager().isEmpty()) {
+                employeeRepository.findByEmployeeId(employee.getReportingManager())
+                        .ifPresent(manager -> dto.setReportingManagerName(manager.getName()));
+            }
+
+            // Get leave policy name and leave type names if available
+            if (employee.getLeavePolicyId() != null) {
+                try {
+                    LeavePolicyModel leavePolicy = leavePolicyService.getLeavePolicyById(employee.getLeavePolicyId());
+                    dto.setLeavePolicyName(leavePolicy.getName());
+
+                    // Get all leave type names and IDs from the policy
+                    List<String> leaveTypeNames = new ArrayList<>();
+                    List<String> leaveTypeIds = new ArrayList<>();
+
+                    leavePolicy.getLeaveAllocations().forEach(allocation -> {
+                        try {
+                            LeaveTypeModel leaveType = leaveTypeService.getLeaveTypeById(allocation.getLeaveTypeId());
+                            leaveTypeNames.add(leaveType.getLeaveTypeName());
+                            leaveTypeIds.add(leaveType.getLeaveTypeId());
+                        } catch (Exception e) {
+                            // Skip if leave type not found
+                        }
+                    });
+
+                    dto.setLeaveTypeNames(leaveTypeNames);
+                    dto.setLeaveTypeIds(leaveTypeIds);
+                } catch (Exception e) {
+                    // If leave policy not found, leave names and IDs as null
+                }
+            }
+
+            return dto;
+        }).collect(Collectors.toList());
+    }
 
     public EmployeeModel updateEmployeeRole(String employeeId, List<String> roles, String operation) {
         if (roles == null || roles.isEmpty()) {
@@ -647,7 +903,6 @@ public class EmployeeService {
         employee.setRoles(currentRoles);
         return employeeRepository.save(employee);
     }
-
 
     public EmployeeAttendanceDetailsDTO getEmployeeAttendanceDetails(String employeeId) {
         EmployeeModel employee = employeeRepository.findByEmployeeId(employeeId)

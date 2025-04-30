@@ -3,11 +3,12 @@ package com.medhir.rest.employee;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+import com.medhir.rest.dto.CompanyEmployeeDTO;
 import com.medhir.rest.dto.ManagerEmployeeDTO;
 import com.medhir.rest.dto.UpdateEmployeeRoles;
 import com.medhir.rest.dto.UserCompanyDTO;
-import com.medhir.rest.dto.CompanyEmployeeDTO;
 import com.medhir.rest.employee.dto.EmployeeAttendanceDetailsDTO;
+import com.medhir.rest.employee.dto.EmployeeWithLeaveDetailsDTO;
 import com.medhir.rest.service.UserService;
 import com.medhir.rest.utils.GeneratedId;
 import jakarta.validation.ConstraintViolation;
@@ -18,8 +19,11 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
-
-import java.util.*;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
+import java.util.HashMap;
 
 @RestController
 @RequestMapping("/")
@@ -79,21 +83,25 @@ public class EmployeeController {
         }
 
         // Pass the deserialized object to the service layer
-        EmployeeModel savedEmployee = employeeService.createEmployee(
+        EmployeeWithLeaveDetailsDTO createdEmployee = employeeService.createEmployee(
                 employee, profileImage, aadharImage, panImage, passportImage, drivingLicenseImage, voterIdImage, passbookImage);
 
-        return ResponseEntity.ok(Map.of(
-                "message", "Created Employee Successfully",
-                "employeeId",savedEmployee.getEmployeeId()
-        ));
+        Map<String, Object> response = new HashMap<>();
+        response.put("message", "Employee created successfully");
+        response.put("employee", createdEmployee);
+        return ResponseEntity.ok(response);
     }
 
-
     // Get All Employees
+    @GetMapping("/employee")
+    public ResponseEntity<List<EmployeeWithLeaveDetailsDTO>> getAllEmployees(){
+        return ResponseEntity.ok(employeeService.getAllEmployees());
+    }
+
+    // Get All Employees (HR Admin endpoint)
     @GetMapping("/hradmin/employees")
-    public ResponseEntity<List<EmployeeModel>> getAllEmployees() {
-        List<EmployeeModel> employees = employeeService.getAllEmployees();
-        return ResponseEntity.ok(employees);
+    public ResponseEntity<List<EmployeeWithLeaveDetailsDTO>> getAllEmployeesHRAdmin(){
+        return ResponseEntity.ok(employeeService.getAllEmployees());
     }
 
     // Get All Employees with minimal fields (name and employeeId)
@@ -102,12 +110,11 @@ public class EmployeeController {
         return ResponseEntity.ok(employeeService.getAllEmployeesMinimal());
     }
 
-//    // Get All Employees by Company ID
-//    @GetMapping("/hradmin/companies/{companyId}/employees")
-//    public ResponseEntity<List<EmployeeModel>> getAllEmployeesByCompanyId(@PathVariable String companyId) {
-//        List<EmployeeModel> employees = employeeService.getAllEmployeesByCompanyId(companyId);
-//        return ResponseEntity.ok(employees);
-//    }
+    // Get All Employees by Company ID
+    @GetMapping("/employee/company/{companyId}")
+    public ResponseEntity<List<EmployeeWithLeaveDetailsDTO>> getEmployeesByCompanyId(@PathVariable String companyId){
+        return ResponseEntity.ok(employeeService.getEmployeesByCompanyId(companyId));
+    }
 
     // Get All Employees by Company ID with additional details
     @GetMapping("/hradmin/companies/{companyId}/employees")
@@ -115,10 +122,9 @@ public class EmployeeController {
         return ResponseEntity.ok(employeeService.getAllEmployeesByCompanyIdWithDetails(companyId));
     }
 
-
     // Get Employee by Employee ID
     @GetMapping("/employee/id/{employeeId}")
-    public ResponseEntity<Optional<EmployeeModel>> getEmployeeById(@PathVariable String employeeId){
+    public ResponseEntity<Optional<EmployeeWithLeaveDetailsDTO>> getEmployeeById(@PathVariable String employeeId){
         return ResponseEntity.ok(employeeService.getEmployeeById(employeeId));
     }
 
@@ -154,12 +160,13 @@ public class EmployeeController {
         }
 
         // Pass the deserialized object and images to the service layer
-        EmployeeModel updatedEmployee = employeeService.updateEmployee(
+        EmployeeWithLeaveDetailsDTO updatedEmployee = employeeService.updateEmployee(
                 employeeId, employee, profileImage, aadharImage, panImage, passportImage, drivingLicenseImage, voterIdImage, passbookImage);
 
-        return ResponseEntity.ok(Map.of(
-                "message", "Updated Employee Successfully"
-        ));
+        Map<String, Object> response = new HashMap<>();
+        response.put("message", "Employee updated successfully");
+        response.put("employee", updatedEmployee);
+        return ResponseEntity.ok(response);
     }
 
     @GetMapping("/employees/manager/{managerId}")
@@ -167,7 +174,6 @@ public class EmployeeController {
         List<ManagerEmployeeDTO> employees = employeeService.getEmployeesByManager(managerId);
         return ResponseEntity.ok(employees);
     }
-
 
     // Delete Employee by Employee ID
     @DeleteMapping("/hradmin/employees/{employeeId}")
@@ -198,7 +204,6 @@ public class EmployeeController {
                 "message", "Employee roles updated successfully"
         ));
     }
-
 
     @GetMapping("/employee/{employeeId}/attendance-details")
     public ResponseEntity<EmployeeAttendanceDetailsDTO> getEmployeeAttendanceDetails(@PathVariable String employeeId) {

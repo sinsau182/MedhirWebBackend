@@ -1,6 +1,5 @@
 package com.medhir.rest.settings.department;
 
-import com.medhir.rest.exception.BadRequestException;
 import com.medhir.rest.exception.DuplicateResourceException;
 import com.medhir.rest.exception.ResourceNotFoundException;
 import com.medhir.rest.service.CompanyService;

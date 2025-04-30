@@ -1,8 +1,9 @@
 package com.medhir.rest.settings.designations;
 
-import com.medhir.rest.exception.BadRequestException;
+import com.medhir.rest.dto.CompanyDesignationDTO;
 import com.medhir.rest.exception.DuplicateResourceException;
 import com.medhir.rest.exception.ResourceNotFoundException;
+import com.medhir.rest.settings.department.DepartmentModel;
 import com.medhir.rest.settings.department.DepartmentService;
 import com.medhir.rest.utils.GeneratedId;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -11,6 +12,7 @@ import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
 public class DesignationService {
@@ -100,5 +102,26 @@ public class DesignationService {
     public void deleteDesignation(String id) {
         DesignationModel designation = getDesignationById(id);
         designationRepository.delete(designation);
+    }
+
+    public List<CompanyDesignationDTO> getAllDesignationsByCompanyId(String companyId) {
+        // Get all departments for the company
+        List<DepartmentModel> departments = departmentService.getDepartmentsByCompanyId(companyId);
+
+        // Get all designations for each department
+        return departments.stream()
+                .flatMap(department -> {
+                    List<DesignationModel> designations = designationRepository.findByDepartment(department.getDepartmentId());
+                    return designations.stream()
+                            .map(designation -> new CompanyDesignationDTO(
+                                    designation.getDesignationId(),
+                                    designation.getName(),
+                                    department.getName(), // Department name instead of ID
+                                    designation.getDescription(),
+                                    designation.isManager(),
+                                    designation.isOvertimeEligible()
+                            ));
+                })
+                .collect(Collectors.toList());
     }
 }

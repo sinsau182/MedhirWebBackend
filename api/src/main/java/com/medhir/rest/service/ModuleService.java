@@ -1,24 +1,18 @@
 package com.medhir.rest.service;
 
-import com.medhir.rest.exception.ResourceNotFoundException;
-import com.medhir.rest.model.ModuleModel;
+import com.medhir.rest.dto.ModuleResponseDTO;
 import com.medhir.rest.employee.EmployeeModel;
 import com.medhir.rest.employee.EmployeeRepository;
+import com.medhir.rest.exception.ResourceNotFoundException;
+import com.medhir.rest.model.CompanyModel;
+import com.medhir.rest.model.ModuleModel;
 import com.medhir.rest.repository.ModuleRepository;
 import com.medhir.rest.utils.GeneratedId;
-import com.medhir.rest.dto.ModuleResponseDTO;
-import com.medhir.rest.dto.UserCompanyDTO;
-import com.medhir.rest.model.CompanyModel;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
 import java.util.stream.Collectors;
-import java.util.HashMap;
-import java.util.Set;
 
 @Service
 public class ModuleService {
