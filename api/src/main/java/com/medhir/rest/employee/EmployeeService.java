@@ -170,18 +170,22 @@ public class EmployeeService {
             }
         }
 
-        // Register employee for login with email and phone number as password
-        if (employee.getPhone() != null && !employee.getPhone().isEmpty() &&
-                employee.getEmailPersonal() != null && !employee.getEmailPersonal().isEmpty()) {
+        try {
+            // Register employee for login with email and phone number as password
+            if (savedEmployee.getPhone() != null && !savedEmployee.getPhone().isEmpty() &&
+                    savedEmployee.getEmailPersonal() != null && !savedEmployee.getEmailPersonal().isEmpty()) {
+                employeeAuthService.registerEmployee(
+                        savedEmployee.getEmployeeId(),
+                        savedEmployee.getEmailPersonal(),
+                        savedEmployee.getPhone());
+            }
 
-            employeeAuthService.registerEmployee(
-                    savedEmployee.getEmployeeId(),
-                    savedEmployee.getEmailPersonal(),
-                    savedEmployee.getPhone());
+            // call Attendance Service to register user for face verification
+            registerUserInAttendanceService(savedEmployee);
+        } catch (Exception e) {
+            // Log the error but don't fail the employee creation
+            System.err.println("Failed to register employee in auth/attendance service: " + e.getMessage());
         }
-
-        // call Attendance Service to register user for face verification
-        registerUserInAttendanceService(savedEmployee);
 
         return response;
     }
