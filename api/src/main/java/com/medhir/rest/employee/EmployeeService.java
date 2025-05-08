@@ -73,13 +73,13 @@ public class EmployeeService {
 
     // Create Employee
     public EmployeeWithLeaveDetailsDTO createEmployee(EmployeeModel employee,
-            MultipartFile profileImage,
-            MultipartFile aadharImage,
-            MultipartFile panImage,
-            MultipartFile passportImage,
-            MultipartFile drivingLicenseImage,
-            MultipartFile voterIdImage,
-            MultipartFile passbookImage) {
+                                                      MultipartFile profileImage,
+                                                      MultipartFile aadharImage,
+                                                      MultipartFile panImage,
+                                                      MultipartFile passportImage,
+                                                      MultipartFile drivingLicenseImage,
+                                                      MultipartFile voterIdImage,
+                                                      MultipartFile passbookImage) {
         if (employeeRepository.findByEmployeeId(employee.getEmployeeId()).isPresent()) {
             throw new DuplicateResourceException("Employee ID already exists: " + employee.getEmployeeId());
         }
@@ -193,6 +193,27 @@ public class EmployeeService {
             EmployeeWithLeaveDetailsDTO dto = new EmployeeWithLeaveDetailsDTO();
             BeanUtils.copyProperties(employee, dto);
 
+            // Get department name
+            try {
+                if (employee.getDepartment() != null && !employee.getDepartment().isEmpty()) {
+                    dto.setDepartmentName(departmentService.getDepartmentById(employee.getDepartment()).getName());
+                }
+            } catch (Exception e) {
+                dto.setDepartmentName(employee.getDepartment());
+            }
+
+            // Get designation name
+            try {
+                Optional<DesignationModel> designation = Optional
+                        .ofNullable(designationService.getDesignationById(employee.getDesignation()));
+                designation.ifPresent(d -> dto.setDesignationName(d.getName()));
+                if (designation.isEmpty()) {
+                    dto.setDesignationName(employee.getDesignation());
+                }
+            } catch (Exception e) {
+                dto.setDesignationName(employee.getDesignation());
+            }
+
             // Get leave policy name if available
             if (employee.getLeavePolicyId() != null) {
                 try {
@@ -241,6 +262,27 @@ public class EmployeeService {
             EmployeeWithLeaveDetailsDTO dto = new EmployeeWithLeaveDetailsDTO();
             BeanUtils.copyProperties(employee, dto);
 
+            // Get department name
+            try {
+                if (employee.getDepartment() != null && !employee.getDepartment().isEmpty()) {
+                    dto.setDepartmentName(departmentService.getDepartmentById(employee.getDepartment()).getName());
+                }
+            } catch (Exception e) {
+                dto.setDepartmentName(employee.getDepartment());
+            }
+
+            // Get designation name
+            try {
+                Optional<DesignationModel> designation = Optional
+                        .ofNullable(designationService.getDesignationById(employee.getDesignation()));
+                designation.ifPresent(d -> dto.setDesignationName(d.getName()));
+                if (designation.isEmpty()) {
+                    dto.setDesignationName(employee.getDesignation());
+                }
+            } catch (Exception e) {
+                dto.setDesignationName(employee.getDesignation());
+            }
+
             // Get leave policy name if available
             if (employee.getLeavePolicyId() != null) {
                 try {
@@ -277,6 +319,27 @@ public class EmployeeService {
         return employeeRepository.findByEmployeeId(employeeId).map(employee -> {
             EmployeeWithLeaveDetailsDTO dto = new EmployeeWithLeaveDetailsDTO();
             BeanUtils.copyProperties(employee, dto);
+
+            // Get department name
+            try {
+                if (employee.getDepartment() != null && !employee.getDepartment().isEmpty()) {
+                    dto.setDepartmentName(departmentService.getDepartmentById(employee.getDepartment()).getName());
+                }
+            } catch (Exception e) {
+                dto.setDepartmentName(employee.getDepartment());
+            }
+
+            // Get designation name
+            try {
+                Optional<DesignationModel> designation = Optional
+                        .ofNullable(designationService.getDesignationById(employee.getDesignation()));
+                designation.ifPresent(d -> dto.setDesignationName(d.getName()));
+                if (designation.isEmpty()) {
+                    dto.setDesignationName(employee.getDesignation());
+                }
+            } catch (Exception e) {
+                dto.setDesignationName(employee.getDesignation());
+            }
 
             // Get leave policy name if available
             if (employee.getLeavePolicyId() != null) {
@@ -336,6 +399,15 @@ public class EmployeeService {
                         dto.setDesignationName(employee.getDesignation());
                     }
 
+                    // Get department name from department service
+                    try {
+                        if (employee.getDepartment() != null && !employee.getDepartment().isEmpty()) {
+                            dto.setDepartmentName(departmentService.getDepartmentById(employee.getDepartment()).getName());
+                        }
+                    } catch (Exception e) {
+                        dto.setDepartmentName(employee.getDepartment());
+                    }
+
                     return dto;
                 })
                 .collect(Collectors.toList());
@@ -354,13 +426,13 @@ public class EmployeeService {
 
     // Update Employee
     public EmployeeWithLeaveDetailsDTO updateEmployee(String employeeId, EmployeeModel updatedEmployee,
-            MultipartFile profileImage,
-            MultipartFile aadharImage,
-            MultipartFile panImage,
-            MultipartFile passportImage,
-            MultipartFile drivingLicenseImage,
-            MultipartFile voterIdImage,
-            MultipartFile passbookImage) {
+                                                      MultipartFile profileImage,
+                                                      MultipartFile aadharImage,
+                                                      MultipartFile panImage,
+                                                      MultipartFile passportImage,
+                                                      MultipartFile drivingLicenseImage,
+                                                      MultipartFile voterIdImage,
+                                                      MultipartFile passbookImage) {
         return employeeRepository.findByEmployeeId(employeeId).map(existingEmployee -> {
 
             Optional<EmployeeModel> employeeIDExists = employeeRepository

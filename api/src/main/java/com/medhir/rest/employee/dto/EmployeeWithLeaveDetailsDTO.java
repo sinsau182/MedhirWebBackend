@@ -15,6 +15,8 @@ public class EmployeeWithLeaveDetailsDTO extends EmployeeModel {
     private String leavePolicyName;
     private List<String> leaveTypeNames;
     private List<String> leaveTypeIds;
+    private String departmentName;
+    private String designationName;
 
     public EmployeeWithLeaveDetailsDTO(EmployeeModel employee) {
         BeanUtils.copyProperties(employee, this);

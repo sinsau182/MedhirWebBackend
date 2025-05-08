@@ -1,6 +1,7 @@
 package com.medhir.rest.employeeUpdateRequest;
 
 import com.medhir.rest.employee.EmployeeModel;
+import jakarta.validation.constraints.NotBlank;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -17,9 +18,10 @@ public class HrUpdateController {
     @Autowired
     private EmployeeUpdateService employeeUpdateService;
 
-    @GetMapping("/update-requests")
-    public ResponseEntity<List<Map<String, Object>>> getAllUpdateRequests() {
-        List<EmployeeModel> pendingRequests = employeeUpdateService.getAllPendingRequests();
+    @GetMapping("/company/{companyId}/update-requests")
+    public ResponseEntity<List<Map<String, Object>>> getUpdateRequestsByCompanyId(
+            @PathVariable @NotBlank(message = "Company ID is required") String companyId) {
+        List<EmployeeModel> pendingRequests = employeeUpdateService.getPendingRequestsByCompanyId(companyId);
 
         List<Map<String, Object>> detailedRequests = pendingRequests.stream()
                 .map(employee -> {

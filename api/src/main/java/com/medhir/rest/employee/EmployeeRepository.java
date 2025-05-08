@@ -25,4 +25,6 @@ public interface EmployeeRepository extends MongoRepository<EmployeeModel, Strin
     List<EmployeeModel> findByCompanyIdAndReportingManager(String companyId, String reportingManager);
 
     List<EmployeeModel> findByDepartmentAndDesignationIn(String department, List<String> designations);
+
+    List<EmployeeModel> findByCompanyIdAndUpdateStatus(String companyId, String updateStatus);
 }

@@ -18,4 +18,5 @@ public class ManagerEmployeeDTO {
     private LocalDate joiningDate;
     private String designationName;
     private String currentAddress;
+    private String departmentName;
 } 
