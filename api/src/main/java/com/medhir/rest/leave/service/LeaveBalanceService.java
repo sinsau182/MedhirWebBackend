@@ -198,9 +198,14 @@ public class LeaveBalanceService {
 
     public void updateLeavesTaken(String employeeId, double days) {
         LeaveBalance balance = getCurrentMonthBalance(employeeId);
+        // Update leaves taken in this month
         balance.setLeavesTakenInThisMonth(balance.getLeavesTakenInThisMonth() + days);
+        // Update leaves taken this year
         balance.setLeavesTakenThisYear(balance.getLeavesTakenThisYear() + days);
-        updateRemainingLeaves(balance);
+        // Update remaining annual leaves
+        balance.setRemainingAnnualLeaves(balance.getRemainingAnnualLeaves() - days);
+        // Update new balance
+        balance.setNewLeaveBalance(balance.getRemainingAnnualLeaves() + balance.getRemainingCompOffLeaves());
         leaveBalanceRepository.save(balance);
     }
 

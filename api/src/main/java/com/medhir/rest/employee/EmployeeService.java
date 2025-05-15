@@ -73,13 +73,13 @@ public class EmployeeService {
 
     // Create Employee
     public EmployeeWithLeaveDetailsDTO createEmployee(EmployeeModel employee,
-                                                      MultipartFile profileImage,
-                                                      MultipartFile aadharImage,
-                                                      MultipartFile panImage,
-                                                      MultipartFile passportImage,
-                                                      MultipartFile drivingLicenseImage,
-                                                      MultipartFile voterIdImage,
-                                                      MultipartFile passbookImage) {
+            MultipartFile profileImage,
+            MultipartFile aadharImage,
+            MultipartFile panImage,
+            MultipartFile passportImage,
+            MultipartFile drivingLicenseImage,
+            MultipartFile voterIdImage,
+            MultipartFile passbookImage) {
         if (employeeRepository.findByEmployeeId(employee.getEmployeeId()).isPresent()) {
             throw new DuplicateResourceException("Employee ID already exists: " + employee.getEmployeeId());
         }
@@ -138,6 +138,11 @@ public class EmployeeService {
 
         employee.setEmployeeId(generateEmployeeId(employee.getCompanyId()));
         EmployeeModel savedEmployee = employeeRepository.save(employee);
+
+        // Update reporting manager's assignTo list if a reporting manager is set
+        if (savedEmployee.getReportingManager() != null && !savedEmployee.getReportingManager().isEmpty()) {
+            updateManagerAssignTo(savedEmployee.getReportingManager());
+        }
 
         // Create response DTO with leave details
         EmployeeWithLeaveDetailsDTO response = new EmployeeWithLeaveDetailsDTO();
@@ -390,6 +395,7 @@ public class EmployeeService {
                     dto.setEmailOfficial(employee.getEmailOfficial());
                     dto.setJoiningDate(employee.getJoiningDate());
                     dto.setCurrentAddress(employee.getCurrentAddress());
+                    dto.setRoles(employee.getRoles());
 
                     // Get designation name from designation service
                     try {
@@ -406,7 +412,8 @@ public class EmployeeService {
                     // Get department name from department service
                     try {
                         if (employee.getDepartment() != null && !employee.getDepartment().isEmpty()) {
-                            dto.setDepartmentName(departmentService.getDepartmentById(employee.getDepartment()).getName());
+                            dto.setDepartmentName(
+                                    departmentService.getDepartmentById(employee.getDepartment()).getName());
                         }
                     } catch (Exception e) {
                         dto.setDepartmentName(employee.getDepartment());
@@ -430,13 +437,13 @@ public class EmployeeService {
 
     // Update Employee
     public EmployeeWithLeaveDetailsDTO updateEmployee(String employeeId, EmployeeModel updatedEmployee,
-                                                      MultipartFile profileImage,
-                                                      MultipartFile aadharImage,
-                                                      MultipartFile panImage,
-                                                      MultipartFile passportImage,
-                                                      MultipartFile drivingLicenseImage,
-                                                      MultipartFile voterIdImage,
-                                                      MultipartFile passbookImage) {
+            MultipartFile profileImage,
+            MultipartFile aadharImage,
+            MultipartFile panImage,
+            MultipartFile passportImage,
+            MultipartFile drivingLicenseImage,
+            MultipartFile voterIdImage,
+            MultipartFile passbookImage) {
         return employeeRepository.findByEmployeeId(employeeId).map(existingEmployee -> {
 
             Optional<EmployeeModel> employeeIDExists = employeeRepository
@@ -459,6 +466,9 @@ public class EmployeeService {
                 throw new DuplicateResourceException(
                         phoneExists.get().getPhone() + " : Phone number is already in use by another Employee");
             }
+
+            // Store old reporting manager for comparison
+            String oldReportingManager = existingEmployee.getReportingManager();
 
             // Update basic details
             existingEmployee.setName(updatedEmployee.getName());
@@ -617,6 +627,15 @@ public class EmployeeService {
                 }
             }
 
+            // If reporting manager changed, update both old and new manager's assignTo
+            // lists
+            if (!updatedEmployee.getReportingManager().equals(oldReportingManager)) {
+                // Update old manager's assignTo list (remove this employee)
+                updateManagerAssignTo(oldReportingManager);
+                // Update new manager's assignTo list (add this employee)
+                updateManagerAssignTo(updatedEmployee.getReportingManager());
+            }
+
             return response;
         }).orElseThrow(() -> new ResourceNotFoundException("Employee with ID " + employeeId + " not found"));
     }
@@ -643,6 +662,14 @@ public class EmployeeService {
             employee.setPermanentAddress("");
         if (employee.getCurrentAddress() == null)
             employee.setCurrentAddress("");
+
+        // Initialize assignTo list if null
+        if (employee.getAssignTo() == null) {
+            employee.setAssignTo(new ArrayList<>());
+        }
+
+        // Update assignTo lists for all managers
+        updateAllManagersAssignTo();
 
         // ID Proofs
         if (employee.getIdProofs() == null) {
@@ -944,6 +971,9 @@ public class EmployeeService {
                 }
             }
 
+            // Copy assignTo list from employee model
+            dto.setAssignTo(employee.getAssignTo());
+
             return dto;
         }).collect(Collectors.toList());
     }
@@ -991,6 +1021,132 @@ public class EmployeeService {
         dto.setWeeklyOffs(employee.getWeeklyOffs());
 
         return dto;
+    }
+
+    // Add this new method
+    private void updateAllManagersAssignTo() {
+        // Get all employees
+        List<EmployeeModel> allEmployees = employeeRepository.findAll();
+
+        // Create a map of reporting manager to their team members
+        Map<String, List<String>> managerToTeamMap = new HashMap<>();
+
+        // First, collect all team members for each manager based on reportingManager
+        // field
+        for (EmployeeModel employee : allEmployees) {
+            if (employee.getReportingManager() != null && !employee.getReportingManager().isEmpty()) {
+                managerToTeamMap.computeIfAbsent(employee.getReportingManager(), k -> new ArrayList<>())
+                        .add(employee.getEmployeeId());
+            }
+        }
+
+        // Then update each manager's assignTo list and add MANAGER role
+        for (Map.Entry<String, List<String>> entry : managerToTeamMap.entrySet()) {
+            String managerId = entry.getKey();
+            List<String> teamMembers = entry.getValue();
+
+            employeeRepository.findByEmployeeId(managerId).ifPresent(manager -> {
+                boolean needsUpdate = false;
+
+                // Update assignTo list
+                if (!teamMembers.equals(manager.getAssignTo())) {
+                    manager.setAssignTo(teamMembers);
+                    needsUpdate = true;
+                }
+
+                // Add MANAGER role if not already present
+                Set<String> roles = manager.getRoles();
+                if (roles == null) {
+                    roles = new HashSet<>();
+                }
+                if (!roles.contains("MANAGER")) {
+                    roles.add("MANAGER");
+                    manager.setRoles(roles);
+                    needsUpdate = true;
+                }
+
+                // Save if any changes were made
+                if (needsUpdate) {
+                    employeeRepository.save(manager);
+                }
+            });
+        }
+
+        // Also handle direct assignTo relationships
+        for (EmployeeModel employee : allEmployees) {
+            if (employee.getAssignTo() != null && !employee.getAssignTo().isEmpty()) {
+                boolean needsUpdate = false;
+
+                // Add MANAGER role if not already present
+                Set<String> roles = employee.getRoles();
+                if (roles == null) {
+                    roles = new HashSet<>();
+                }
+                if (!roles.contains("MANAGER")) {
+                    roles.add("MANAGER");
+                    employee.setRoles(roles);
+                    needsUpdate = true;
+                }
+
+                // Save if any changes were made
+                if (needsUpdate) {
+                    employeeRepository.save(employee);
+                }
+            }
+        }
+    }
+
+    // Add this new method
+    private void updateManagerAssignTo(String managerId) {
+        if (managerId == null || managerId.isEmpty()) {
+            return;
+        }
+
+        // Get all employees who report to this manager
+        List<EmployeeModel> teamMembers = employeeRepository.findByReportingManager(managerId);
+
+        // Get the manager
+        employeeRepository.findByEmployeeId(managerId).ifPresent(manager -> {
+            boolean needsUpdate = false;
+
+            // Create list of team member IDs
+            List<String> teamMemberIds = teamMembers.stream()
+                    .map(EmployeeModel::getEmployeeId)
+                    .collect(Collectors.toList());
+
+            // Update assignTo list if different
+            if (!teamMemberIds.equals(manager.getAssignTo())) {
+                manager.setAssignTo(teamMemberIds);
+                needsUpdate = true;
+            }
+
+            // Handle MANAGER role based on assignTo list
+            Set<String> roles = manager.getRoles();
+            if (roles == null) {
+                roles = new HashSet<>();
+            }
+
+            if (teamMemberIds.isEmpty()) {
+                // Remove MANAGER role if assignTo is empty
+                if (roles.contains("MANAGER")) {
+                    roles.remove("MANAGER");
+                    manager.setRoles(roles);
+                    needsUpdate = true;
+                }
+            } else {
+                // Add MANAGER role if not already present and assignTo is not empty
+                if (!roles.contains("MANAGER")) {
+                    roles.add("MANAGER");
+                    manager.setRoles(roles);
+                    needsUpdate = true;
+                }
+            }
+
+            // Save if any changes were made
+            if (needsUpdate) {
+                employeeRepository.save(manager);
+            }
+        });
     }
 
 }

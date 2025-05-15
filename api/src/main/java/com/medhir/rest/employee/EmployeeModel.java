@@ -16,6 +16,7 @@ import org.springframework.data.mongodb.core.index.Indexed;
 import org.springframework.data.mongodb.core.mapping.Document;
 
 import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 
@@ -93,6 +94,8 @@ public class EmployeeModel {
     private SalaryDetails salaryDetails;
 
     private String updateStatus; // Approved, Pending, Rejected
+
+    private List<String> assignTo = new ArrayList<>(); // Field to store who the employee is assigned to
 
     @Valid
     private EmployeeUpdateRequest pendingUpdateRequest; // Reference to EmployeeUpdateRequest which stores the pending

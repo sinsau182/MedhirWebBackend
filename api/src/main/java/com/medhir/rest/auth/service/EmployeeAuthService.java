@@ -9,6 +9,7 @@ import com.medhir.rest.config.JwtUtil;
 import com.medhir.rest.employee.EmployeeModel;
 import com.medhir.rest.employee.EmployeeRepository;
 import com.medhir.rest.exception.ResourceNotFoundException;
+import com.medhir.rest.service.CompanyService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.core.GrantedAuthority;
@@ -19,6 +20,7 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -33,6 +35,7 @@ public class EmployeeAuthService implements UserDetailsService {
     private final JwtUtil jwtUtil;
     private final BCryptPasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
     private final JwtService jwtService;
+    private final CompanyService companyService;
 
     @Override
     public UserDetails loadUserByUsername(String email) throws UsernameNotFoundException {
@@ -78,43 +81,28 @@ public class EmployeeAuthService implements UserDetailsService {
                     throw new RuntimeException("No auth record found for email: " + request.getEmail());
                 });
 
-        // Get employee details to show the actual phone number
+        // Get employee details
         EmployeeModel employee = employeeRepository.findByEmployeeId(employeeAuth.getEmployeeId())
                 .orElseThrow(() -> new RuntimeException("Employee not found"));
 
-        // Debug logging for phone numbers
-        log.info("Raw input phone: {}", request.getPassword());
-        log.info("Raw stored phone: {}", employee.getPhone());
-        
-        // Normalize the input phone number
-        String normalizedInputPhone = normalizePhoneNumber(request.getPassword());
-        String normalizedStoredPhone = normalizePhoneNumber(employee.getPhone());
-        
-        log.info("Normalized input phone: {}", normalizedInputPhone);
-        log.info("Normalized stored phone: {}", normalizedStoredPhone);
-        
-        // First verify if the phone numbers match exactly
-        if (!normalizedInputPhone.equals(normalizedStoredPhone)) {
-            log.error("Phone number mismatch. Input: {}, Expected: {}", normalizedInputPhone, normalizedStoredPhone);
-            throw new RuntimeException("Invalid credentials. Expected phone number: " + normalizedStoredPhone);
+        // If password has been changed, verify against stored password
+        if (employeeAuth.isPasswordChanged()) {
+            if (!passwordEncoder.matches(request.getPassword(), employeeAuth.getPassword())) {
+                throw new RuntimeException("Invalid credentials");
+            }
+        } else {
+            // If password hasn't been changed, verify against phone number
+            String normalizedInputPhone = normalizePhoneNumber(request.getPassword());
+            String normalizedStoredPhone = normalizePhoneNumber(employee.getPhone());
+            
+            if (!normalizedInputPhone.equals(normalizedStoredPhone)) {
+                throw new RuntimeException("Invalid credentials. Expected phone number: " + normalizedStoredPhone);
+            }
         }
-
-        // If phone numbers match, recreate the auth record to ensure correct encoding
-        log.info("Phone numbers match, recreating auth record");
-        employeeAuthRepository.delete(employeeAuth);
-        createEmployeeAuth(employee);
-        
-        // Get the new auth record
-        employeeAuth = employeeAuthRepository.findByEmail(request.getEmail())
-                .orElseThrow(() -> new RuntimeException("Failed to create auth record"));
-        
-        log.info("New encoded password: {}", employeeAuth.getPassword());
 
         // Get roles
         Set<String> roles = employeeRoleService.getEmployeeRoles(employeeAuth.getEmployeeId());
-        List<String> roleList = roles.stream()
-                .map(role -> "ROLE_" + role)
-                .collect(Collectors.toList());
+        List<String> roleList = new ArrayList<>(roles);
         
         log.info("Roles found for employee {}: {}", employeeAuth.getEmployeeId(), roleList);
 
@@ -126,6 +114,7 @@ public class EmployeeAuthService implements UserDetailsService {
                 .token(token)
                 .roles(roleList)
                 .employeeId(employeeAuth.getEmployeeId())
+                .isPasswordChanged(employeeAuth.isPasswordChanged())
                 .build();
     }
 
@@ -145,10 +134,18 @@ public class EmployeeAuthService implements UserDetailsService {
         String encodedPassword = passwordEncoder.encode(normalizedPhone);
         log.info("Encoded phone number: {}", encodedPassword);
 
+        // Get roles from employee model
+        Set<String> roles = employee.getRoles();
+        if (roles == null || roles.isEmpty()) {
+            roles = Set.of("EMPLOYEE");
+        }
+        log.info("Setting roles for employee {}: {}", employee.getEmployeeId(), roles);
+
         EmployeeAuth employeeAuth = EmployeeAuth.builder()
                 .employeeId(employee.getEmployeeId())
                 .email(employee.getEmailPersonal())
                 .password(encodedPassword)
+                .roles(roles)
                 .build();
         
         employeeAuthRepository.save(employeeAuth);

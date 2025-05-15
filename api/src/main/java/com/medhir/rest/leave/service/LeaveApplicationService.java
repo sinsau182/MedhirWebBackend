@@ -1,6 +1,9 @@
 package com.medhir.rest.leave.service;
 
+import com.medhir.rest.employee.EmployeeModel;
 import com.medhir.rest.employee.EmployeeService;
+import com.medhir.rest.employee.dto.EmployeeWithLeaveDetailsDTO;
+import com.medhir.rest.dto.ManagerEmployeeDTO;
 import com.medhir.rest.exception.ResourceNotFoundException;
 import com.medhir.rest.leave.dto.LeaveWithEmployeeDetails;
 import com.medhir.rest.leave.dto.UpdateLeaveStatusRequest;
@@ -333,5 +336,57 @@ public class LeaveApplicationService {
     public List<LeaveModel> getLeavesByEmployeeId(String employeeId) {
         List<LeaveModel> leaves = leaveRepository.findByEmployeeId(employeeId);
         return leaves;
+    }
+
+    public List<LeaveWithEmployeeDetails> getLeavesByManagerIdAndStatus(String managerId, String status) {
+        if (!"Pending".equals(status) && !"Approved".equals(status) && !"Rejected".equals(status)) {
+            throw new IllegalArgumentException("Status must be either 'Pending', 'Approved', or 'Rejected'");
+        }
+
+        // Get all employees reporting to this manager
+        List<ManagerEmployeeDTO> teamMembers = employeeService.getEmployeesByManager(managerId);
+        List<String> teamMemberIds = teamMembers.stream()
+                .map(ManagerEmployeeDTO::getEmployeeId)
+                .collect(Collectors.toList());
+
+        // Get all leaves for team members with the specified status
+        List<LeaveModel> leaves = leaveRepository.findByEmployeeIdInAndStatus(teamMemberIds, status);
+
+        return leaves.stream().map(leave -> {
+            LeaveWithEmployeeDetails leaveWithDetails = new LeaveWithEmployeeDetails();
+
+            // Copy all fields from LeaveModel to LeaveWithEmployeeDetails
+            leaveWithDetails.setId(leave.getId());
+            leaveWithDetails.setLeaveId(leave.getLeaveId());
+            leaveWithDetails.setEmployeeId(leave.getEmployeeId());
+            leaveWithDetails.setCompanyId(leave.getCompanyId());
+            leaveWithDetails.setLeaveName(leave.getLeaveName());
+            leaveWithDetails.setLeaveType(leave.getLeaveType());
+            leaveWithDetails.setStartDate(leave.getStartDate());
+            leaveWithDetails.setEndDate(leave.getEndDate());
+            leaveWithDetails.setShiftType(leave.getShiftType());
+            leaveWithDetails.setReason(leave.getReason());
+            leaveWithDetails.setStatus(leave.getStatus());
+            leaveWithDetails.setRemarks(leave.getRemarks());
+            leaveWithDetails.setCreatedAt(leave.getCreatedAt());
+
+            // Get employee details
+            Optional<EmployeeWithLeaveDetailsDTO> employeeOpt = employeeService.getEmployeeById(leave.getEmployeeId());
+            if (employeeOpt.isPresent()) {
+                EmployeeWithLeaveDetailsDTO employee = employeeOpt.get();
+                leaveWithDetails.setEmployeeName(employee.getName());
+
+                // Get department name
+                try {
+                    if (employee.getDepartment() != null && !employee.getDepartment().isEmpty()) {
+                        leaveWithDetails.setDepartment(departmentService.getDepartmentById(employee.getDepartment()).getName());
+                    }
+                } catch (Exception e) {
+                    leaveWithDetails.setDepartment(employee.getDepartment());
+                }
+            }
+
+            return leaveWithDetails;
+        }).collect(Collectors.toList());
     }
 }

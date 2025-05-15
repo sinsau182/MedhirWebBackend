@@ -5,6 +5,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.time.LocalDate;
+import java.util.Set;
 
 @Data
 @AllArgsConstructor
@@ -19,4 +20,5 @@ public class ManagerEmployeeDTO {
     private String designationName;
     private String currentAddress;
     private String departmentName;
+    private Set<String> roles;
 } 

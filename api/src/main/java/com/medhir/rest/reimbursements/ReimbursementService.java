@@ -27,4 +27,8 @@ public class ReimbursementService {
         reimbursements.forEach(r -> r.setStatus("Pending"));
         return reimbursements;
     }
+
+    public List<ReimbursementModel> getReimbursementsByEmployeeId(String employeeId) {
+        return reimbursementRepository.findByEmployeeId(employeeId);
+    }
 }

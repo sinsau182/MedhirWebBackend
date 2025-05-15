@@ -13,6 +13,8 @@ import org.springframework.security.core.userdetails.UserDetails;
 
 import java.util.Collection;
 import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 @Document(collection = "employee_auth")
 @Data
@@ -31,9 +33,19 @@ public class EmployeeAuth implements UserDetails {
 
     private String password;
 
+    private Set<String> roles;
+
+    @Builder.Default
+    private boolean isPasswordChanged = false;
+
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
-        return List.of(new SimpleGrantedAuthority("ROLE_EMPLOYEE"));
+        if (roles == null || roles.isEmpty()) {
+            return List.of(new SimpleGrantedAuthority("EMPLOYEE"));
+        }
+        return roles.stream()
+                .map(SimpleGrantedAuthority::new)
+                .collect(Collectors.toList());
     }
 
     @Override

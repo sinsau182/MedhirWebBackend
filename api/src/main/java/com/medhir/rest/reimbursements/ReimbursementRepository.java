@@ -5,7 +5,8 @@ import org.springframework.data.mongodb.core.mapping.Document;
 import org.springframework.data.mongodb.repository.MongoRepository;
 
 import com.medhir.rest.reimbursements.ReimbursementModel;
+import java.util.List;
 
 public interface ReimbursementRepository extends MongoRepository<ReimbursementModel, String> {
-    // Custom queries if needed
+    List<ReimbursementModel> findByEmployeeId(String employeeId);
 }

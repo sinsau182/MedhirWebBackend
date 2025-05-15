@@ -90,6 +90,10 @@ public class EmployeeUpdateService {
         return employeeRepository.findByCompanyIdAndUpdateStatus(companyId, "Pending");
     }
 
+    public List<EmployeeModel> getPendingRequestsByManagerId(String managerId) {
+        return employeeRepository.findByReportingManagerAndUpdateStatus(managerId, "Pending");
+    }
+
     public boolean processUpdateRequest(String employeeId, String status) {
         Optional<EmployeeModel> requestOpt = employeeRepository.findByEmployeeId(employeeId);
         if (requestOpt.isEmpty()) {

@@ -12,6 +12,7 @@ import com.medhir.rest.service.MinioService;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/reimbursements")
@@ -58,5 +59,15 @@ public class ReimbursementController {
     @GetMapping
     public List<ReimbursementModel> getAllReimbursements() {
         return reimbursementService.getAllReimbursements();
+    }
+
+    @GetMapping("/employee/{employeeId}")
+    public ResponseEntity<?> getReimbursementsByEmployeeId(@PathVariable String employeeId) {
+        try {
+            List<ReimbursementModel> reimbursements = reimbursementService.getReimbursementsByEmployeeId(employeeId);
+            return ResponseEntity.ok(reimbursements);
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
     }
 }

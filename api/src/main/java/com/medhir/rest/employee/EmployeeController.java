@@ -111,10 +111,10 @@ public class EmployeeController {
     }
 
     // Get All Employees by Company ID
-    @GetMapping("/employee/company/{companyId}")
-    public ResponseEntity<List<EmployeeWithLeaveDetailsDTO>> getEmployeesByCompanyId(@PathVariable String companyId){
-        return ResponseEntity.ok(employeeService.getEmployeesByCompanyId(companyId));
-    }
+    // @GetMapping("/hradmin/companies/{companyId}/employees")
+    // public ResponseEntity<List<EmployeeWithLeaveDetailsDTO>> getEmployeesByCompanyId(@PathVariable String companyId){
+    //     return ResponseEntity.ok(employeeService.getEmployeesByCompanyId(companyId));
+    // }
 
     // Get All Employees by Company ID with additional details
     @GetMapping("/hradmin/companies/{companyId}/employees")

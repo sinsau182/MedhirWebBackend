@@ -17,4 +17,5 @@ public interface LeaveRepository extends MongoRepository<LeaveModel, String> {
     List<LeaveModel> findByEmployeeIdAndStartDateAndStatus(String employeeId, LocalDate startDate, String status);
     Optional<LeaveModel> findFirstByEmployeeIdAndStartDateAndStatusOrderByIdDesc(String employeeId, LocalDate startDate, String status);
     Optional<LeaveModel> findByLeaveId(String leaveId);
+    List<LeaveModel> findByEmployeeIdInAndStatus(List<String> employeeIds, String status);
 }

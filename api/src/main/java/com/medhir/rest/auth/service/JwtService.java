@@ -1,9 +1,15 @@
 package com.medhir.rest.auth.service;
 
+import com.medhir.rest.auth.model.EmployeeAuth;
+import com.medhir.rest.employee.EmployeeModel;
+import com.medhir.rest.employee.EmployeeRepository;
+import com.medhir.rest.service.CompanyService;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
 import io.jsonwebtoken.security.Keys;
+import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Service;
 
@@ -11,12 +17,21 @@ import java.security.Key;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Set;
 import java.util.function.Function;
 
 @Service
+@RequiredArgsConstructor
 public class JwtService {
-    private static final String SECRET_KEY = "404E635266556A586E3272357538782F413F4428472B4B6250645367566B5970";
-    private static final long JWT_TOKEN_VALIDITY = 5 * 60 * 60; // 5 hours
+
+    @Value("${jwt.secret}")
+    private String secretKey;
+
+    @Value("${jwt.expiration}")
+    private long expirationTime;
+
+    private final EmployeeRepository employeeRepository;
+    private final CompanyService companyService;
 
     public String generateToken(UserDetails userDetails) {
         return generateToken(new HashMap<>(), userDetails);
@@ -27,7 +42,7 @@ public class JwtService {
                 .setClaims(extraClaims)
                 .setSubject(userDetails.getUsername())
                 .setIssuedAt(new Date(System.currentTimeMillis()))
-                .setExpiration(new Date(System.currentTimeMillis() + JWT_TOKEN_VALIDITY * 1000))
+                .setExpiration(new Date(System.currentTimeMillis() + expirationTime * 1000))
                 .signWith(getSigningKey(), SignatureAlgorithm.HS256)
                 .compact();
     }
@@ -63,7 +78,30 @@ public class JwtService {
     }
 
     private Key getSigningKey() {
-        byte[] keyBytes = SECRET_KEY.getBytes();
-        return Keys.hmacShaKeyFor(keyBytes);
+        return Keys.hmacShaKeyFor(secretKey.getBytes());
+    }
+
+    public String generateToken(EmployeeAuth employeeAuth) {
+        EmployeeModel employee = employeeRepository.findByEmployeeId(employeeAuth.getEmployeeId())
+                .orElseThrow(() -> new RuntimeException("Employee not found"));
+
+        String companyName = companyService.getCompanyById(employee.getCompanyId())
+                .map(company -> company.getName())
+                .orElse("Unknown Company");
+
+        // Get roles from EmployeeModel
+        Set<String> roles = employee.getRoles();
+
+        return Jwts.builder()
+                .claim("companyId", employee.getCompanyId())
+                .claim("companyName", companyName)
+                .claim("name", employee.getName())
+                .claim("employeeId", employeeAuth.getEmployeeId())
+                .claim("roles", roles)  // Add roles to the token
+                .setSubject(employeeAuth.getEmail())
+                .setIssuedAt(new Date())
+                .setExpiration(new Date(System.currentTimeMillis() + expirationTime))
+                .signWith(getSigningKey(), SignatureAlgorithm.HS256)
+                .compact();
     }
 } 

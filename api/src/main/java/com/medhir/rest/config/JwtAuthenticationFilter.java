@@ -10,6 +10,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
@@ -18,8 +19,9 @@ import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
 import java.security.Key;
+import java.util.HashMap;
 import java.util.List;
-import java.util.Set;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 @Component
@@ -60,16 +62,26 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         // Extract username (email) and roles
         String username = claims.getSubject();
         List<String> roleStrings = claims.get("roles", List.class);
+        String employeeId = claims.get("employeeId", String.class);
+        String name = claims.get("name", String.class);
+        String companyId = claims.get("companyId", String.class);
+        String companyName = claims.get("companyName", String.class);
 
-        // Ensure roles are prefixed with "ROLE_"
-        Set<SimpleGrantedAuthority> authorities = roleStrings.stream()
-                .map(role -> new SimpleGrantedAuthority("ROLE_" + role))  // Add "ROLE_" prefix
-                .collect(Collectors.toSet());
+        // Convert roles to authorities
+        List<GrantedAuthority> authorities = roleStrings.stream()
+                .map(SimpleGrantedAuthority::new)  // No need to add "ROLE_" prefix
+                .collect(Collectors.toList());
 
         if (username != null && !authorities.isEmpty()) {
+            Map<String, Object> details = new HashMap<>();
+            details.put("employeeId", employeeId);
+            details.put("name", name);
+            details.put("companyId", companyId);
+            details.put("companyName", companyName);
+
             UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(
                     username, null, authorities);
-            authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
+            authToken.setDetails(details);
             SecurityContextHolder.getContext().setAuthentication(authToken);
         }
 
