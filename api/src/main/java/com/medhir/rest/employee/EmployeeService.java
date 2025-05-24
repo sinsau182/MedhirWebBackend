@@ -627,13 +627,13 @@ public class EmployeeService {
                 }
             }
 
-            // If reporting manager changed, update both old and new manager's assignTo
-            // lists
-            if (!updatedEmployee.getReportingManager().equals(oldReportingManager)) {
+            // If reporting manager changed, update both old and new manager's assignTo lists
+            String newReportingManager = updatedEmployee.getReportingManager() != null ? updatedEmployee.getReportingManager() : "";
+            if (!newReportingManager.equals(oldReportingManager)) {
                 // Update old manager's assignTo list (remove this employee)
                 updateManagerAssignTo(oldReportingManager);
                 // Update new manager's assignTo list (add this employee)
-                updateManagerAssignTo(updatedEmployee.getReportingManager());
+                updateManagerAssignTo(newReportingManager);
             }
 
             return response;

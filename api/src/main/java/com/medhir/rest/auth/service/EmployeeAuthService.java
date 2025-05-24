@@ -10,6 +10,7 @@ import com.medhir.rest.employee.EmployeeModel;
 import com.medhir.rest.employee.EmployeeRepository;
 import com.medhir.rest.exception.ResourceNotFoundException;
 import com.medhir.rest.service.CompanyService;
+import com.medhir.rest.settings.department.DepartmentService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.core.GrantedAuthority;
@@ -36,6 +37,7 @@ public class EmployeeAuthService implements UserDetailsService {
     private final BCryptPasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
     private final JwtService jwtService;
     private final CompanyService companyService;
+    private final DepartmentService departmentService;
 
     @Override
     public UserDetails loadUserByUsername(String email) throws UsernameNotFoundException {
@@ -106,6 +108,16 @@ public class EmployeeAuthService implements UserDetailsService {
         
         log.info("Roles found for employee {}: {}", employeeAuth.getEmployeeId(), roleList);
 
+        // Get department name
+        String departmentName = "";
+        if (employee.getDepartment() != null && !employee.getDepartment().isEmpty()) {
+            try {
+                departmentName = departmentService.getDepartmentById(employee.getDepartment()).getName();
+            } catch (Exception e) {
+                log.warn("Could not fetch department name for employee {}: {}", employee.getEmployeeId(), e.getMessage());
+            }
+        }
+
         // Generate JWT token
         String token = jwtService.generateToken(employeeAuth);
         log.info("JWT token generated successfully for employee: {}", employeeAuth.getEmployeeId());
@@ -115,6 +127,7 @@ public class EmployeeAuthService implements UserDetailsService {
                 .roles(roleList)
                 .employeeId(employeeAuth.getEmployeeId())
                 .isPasswordChanged(employeeAuth.isPasswordChanged())
+                .departmentName(departmentName)
                 .build();
     }
 
