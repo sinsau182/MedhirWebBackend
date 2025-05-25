@@ -41,53 +41,58 @@ public class AttendanceRecordService {
                 }
                 
                 try {
-                    AttendanceRecord record = new AttendanceRecord();
-                    record.setMonth(month);
-                    record.setYear(year);
-                    
-                    // Validate and set required fields
-                    if (values[1].trim().isEmpty()) {
+                    String employeeId = values[1].trim();
+                    if (employeeId.isEmpty()) {
                         skippedRows.add("Line " + lineNumber + ": Empty Employee ID");
                         continue;
                     }
-                    record.setEmployeeId(values[1].trim());
+
+                    // Check if record exists for this employee, month and year
+                    Optional<AttendanceRecord> existingRecord = attendanceRecordRepository.findByEmployeeIdAndMonthAndYear(employeeId, month, year);
+                    AttendanceRecord record;
                     
-                    if (values[2].trim().isEmpty()) {
-                        skippedRows.add("Line " + lineNumber + ": Empty Employee Name");
-                        continue;
+                    if (existingRecord.isPresent()) {
+                        // Use existing record as base
+                        record = existingRecord.get();
+                    } else {
+                        // Create new record
+                        record = new AttendanceRecord();
+                        record.setMonth(month);
+                        record.setYear(year);
+                        record.setEmployeeId(employeeId);
                     }
-                    record.setEmployeeName(values[2].trim());
                     
-                    // Process weekly holidays
+                    // Update employee name if provided
+                    if (!values[2].trim().isEmpty()) {
+                        record.setEmployeeName(values[2].trim());
+                    }
+                    
+                    // Process weekly holidays if provided
                     String weeklyHolidayStr = values[3].trim();
                     if (!weeklyHolidayStr.isEmpty()) {
-                        // Remove any quotes and split by comma , then trim each value
                         weeklyHolidayStr = weeklyHolidayStr.replace("\"", "");
                         List<String> weeklyHolidays = Arrays.stream(weeklyHolidayStr.split(","))
                             .map(String::trim)
                             .collect(Collectors.toList());
                         record.setWeeklyHoliday(weeklyHolidays);
-                    } else {
-                        record.setWeeklyHoliday(new ArrayList<>());
                     }
                     
-                    // Parse working days with validation
+                    // Update working days if provided
                     try {
                         String workingDaysStr = values[4].trim();
-                        // Remove any quotes
                         workingDaysStr = workingDaysStr.replace("\"", "");
-                        if (workingDaysStr.isEmpty()) {
-                            skippedRows.add("Line " + lineNumber + ": Empty working days value");
-                            continue;
+                        if (!workingDaysStr.isEmpty()) {
+                            record.setWorkingDays(Integer.parseInt(workingDaysStr));
                         }
-                        record.setWorkingDays(Integer.parseInt(workingDaysStr));
                     } catch (NumberFormatException e) {
                         skippedRows.add("Line " + lineNumber + ": Invalid working days value: [" + values[4] + "]");
                         continue;
                     }
                     
                     // Process daily attendance
-                    Map<String, String> dailyAttendance = new LinkedHashMap<>(); // Using LinkedHashMap to preserve insertion order
+                    Map<String, String> dailyAttendance = record.getDailyAttendance() != null ? 
+                        new LinkedHashMap<>(record.getDailyAttendance()) : new LinkedHashMap<>();
+                    
                     for (int i = 5; i < Math.min(values.length, 36); i++) {
                         String value = values[i].trim();
                         if (!value.isEmpty()) {
@@ -96,16 +101,16 @@ public class AttendanceRecordService {
                     }
                     record.setDailyAttendance(dailyAttendance);
                     
-                    // Process summary data with validation
+                    // Update summary data if provided
                     if (values.length > 36) {
-                        record.setPayableDays(parseDouble(values[36], "Payable Days", lineNumber));
-                        record.setLeavesTaken(parseDouble(values[37], "Leaves Taken", lineNumber));
-                        record.setLeavesEarned(parseDouble(values[38], "Leaves Earned", lineNumber));
-                        record.setCompOffEarned(parseDouble(values[39], "Comp Off Earned", lineNumber));
-                        record.setLastMonthBalance(parseDouble(values[40], "Last Month Balance", lineNumber));
-                        record.setNetLeaveBalance(parseDouble(values[41], "Net Leave Balance", lineNumber));
-                        record.setPayableLeaves(parseDouble(values[42], "Payable Leaves", lineNumber));
-                        record.setLeavesPaid(parseDouble(values[43], "Leaves Paid", lineNumber));
+                        if (!values[36].trim().isEmpty()) record.setPayableDays(parseDouble(values[36], "Payable Days", lineNumber));
+                        if (!values[37].trim().isEmpty()) record.setLeavesTaken(parseDouble(values[37], "Leaves Taken", lineNumber));
+                        if (!values[38].trim().isEmpty()) record.setLeavesEarned(parseDouble(values[38], "Leaves Earned", lineNumber));
+                        if (!values[39].trim().isEmpty()) record.setCompOffEarned(parseDouble(values[39], "Comp Off Earned", lineNumber));
+                        if (!values[40].trim().isEmpty()) record.setLastMonthBalance(parseDouble(values[40], "Last Month Balance", lineNumber));
+                        if (!values[41].trim().isEmpty()) record.setNetLeaveBalance(parseDouble(values[41], "Net Leave Balance", lineNumber));
+                        if (!values[42].trim().isEmpty()) record.setPayableLeaves(parseDouble(values[42], "Payable Leaves", lineNumber));
+                        if (!values[43].trim().isEmpty()) record.setLeavesPaid(parseDouble(values[43], "Leaves Paid", lineNumber));
                     }
                     
                     records.add(record);
