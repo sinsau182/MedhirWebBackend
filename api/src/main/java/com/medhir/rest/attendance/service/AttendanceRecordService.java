@@ -2,6 +2,8 @@ package com.medhir.rest.attendance.service;
 
 import com.medhir.rest.attendance.model.AttendanceRecord;
 import com.medhir.rest.attendance.repository.AttendanceRecordRepository;
+import com.medhir.rest.attendance.dto.DailyAttendanceDTO;
+import com.medhir.rest.attendance.dto.FilteredAttendanceDTO;
 import com.medhir.rest.exception.ResourceNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -191,5 +193,37 @@ public class AttendanceRecordService {
             record.setDailyAttendance(sortedAttendance);
         }
         return record;
+    }
+
+    public List<DailyAttendanceDTO> getDailyAttendanceByDate(String month, String year, String date) {
+        List<AttendanceRecord> records = attendanceRecordRepository.findByMonthYearAndDate(month, year, date);
+        return records.stream()
+            .map(record -> {
+                DailyAttendanceDTO dto = new DailyAttendanceDTO();
+                dto.setEmployeeId(record.getEmployeeId());
+                dto.setEmployeeName(record.getEmployeeName());
+                dto.setAttendanceStatus(record.getDailyAttendance().get(date));
+                dto.setDate(date);
+                dto.setMonth(month);
+                dto.setYear(year);
+                return dto;
+            })
+            .collect(Collectors.toList());
+    }
+
+    public List<FilteredAttendanceDTO> getAttendanceByStatus(String month, String year, String date, String status) {
+        List<AttendanceRecord> records = attendanceRecordRepository.findByMonthYearDateAndStatus(month, year, date, status);
+        return records.stream()
+            .map(record -> {
+                FilteredAttendanceDTO dto = new FilteredAttendanceDTO();
+                dto.setEmployeeId(record.getEmployeeId());
+                dto.setEmployeeName(record.getEmployeeName());
+                dto.setAttendanceStatus(status);
+                dto.setDate(date);
+                dto.setMonth(month);
+                dto.setYear(year);
+                return dto;
+            })
+            .collect(Collectors.toList());
     }
 }

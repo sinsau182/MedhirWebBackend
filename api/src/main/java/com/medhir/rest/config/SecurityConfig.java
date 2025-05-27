@@ -61,6 +61,9 @@ public class SecurityConfig {
                         // Manager endpoints can be accessed by MANAGER and HRADMIN
                         .requestMatchers("/manager/**", "/employees/manager/**").hasAnyAuthority("MANAGER", "HRADMIN")
 
+                        // Attendance endpoints can be accessed by MANAGER, HRADMIN, or SUPERADMIN
+                        .requestMatchers("/api/attendance/**").hasAnyAuthority("EMPLOYEE", "MANAGER", "HRADMIN", "SUPERADMIN")
+
                         // Leave balance endpoints can be accessed by any authenticated user
                         .requestMatchers("/api/leave-balance/**").authenticated()
 
