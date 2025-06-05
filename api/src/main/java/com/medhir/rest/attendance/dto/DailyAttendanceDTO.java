@@ -10,4 +10,4 @@ public class DailyAttendanceDTO {
     private String date;
     private String month;
     private String year;
-} 
+}

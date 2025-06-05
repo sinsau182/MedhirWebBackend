@@ -12,6 +12,10 @@ import org.springframework.validation.FieldError;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
+import com.medhir.rest.income.dto.UpdateIncomeStatusRequest;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.GrantedAuthority;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/income")
@@ -19,7 +23,7 @@ public class IncomeController {
     @Autowired
     private IncomeService incomeService;
 
-    @PostMapping(consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
+    @PostMapping(value = "/employee", consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<Income> createIncome(@Valid @RequestBody Income income, BindingResult bindingResult) {
         if (bindingResult.hasErrors()) {
             List<String> errors = bindingResult.getFieldErrors()
@@ -47,13 +51,29 @@ public class IncomeController {
         return ResponseEntity.ok(incomeService.getIncomesByEmployee(employeeId));
     }
 
+
+    @GetMapping(value = "/company/{companyId}/status/{status}", produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<List<Income>> getIncomesByCompanyAndStatus(
+            @PathVariable String companyId,
+            @PathVariable String status) {
+        return ResponseEntity.ok(incomeService.getIncomesByCompanyAndStatus(companyId, status));
+    }
+
+    @GetMapping(value = "/manager/{managerId}/status/{status}", produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<List<Income>> getIncomesByManagerAndStatus(
+            @PathVariable String managerId,
+            @PathVariable String status) {
+        return ResponseEntity.ok(incomeService.getIncomesByManagerAndStatus(managerId, status));
+    }
+
+
     @GetMapping(value = "/{incomeId}", produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<Income> getIncomeById(@PathVariable String incomeId) {
         Optional<Income> income = incomeService.getIncomeById(incomeId);
         return income.map(ResponseEntity::ok).orElseGet(() -> ResponseEntity.notFound().build());
     }
 
-    @PutMapping(value = "/{incomeId}", 
+    @PutMapping(value = "/employee/{incomeId}", 
                 consumes = MediaType.APPLICATION_JSON_VALUE, 
                 produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<Income> updateIncome(
@@ -68,9 +88,75 @@ public class IncomeController {
         }
     }
 
-    @DeleteMapping(value = "/{incomeId}", produces = MediaType.APPLICATION_JSON_VALUE)
+    @PutMapping(value = "/updateStatus/{incomeId}", 
+                consumes = MediaType.APPLICATION_JSON_VALUE, 
+                produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<Income> updateIncomeStatus(
+            @PathVariable String incomeId,
+            @Valid @RequestBody UpdateIncomeStatusRequest request,
+            Authentication authentication) {
+        try {
+            // Verify HRADMIN role
+            boolean isHrAdmin = authentication.getAuthorities().stream()
+                .map(GrantedAuthority::getAuthority)
+                .anyMatch(role -> "HRADMIN".equals(role));
+
+            if (!isHrAdmin) {
+                throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Only HRADMIN can access this endpoint");
+            }
+
+            Income updatedIncome = incomeService.updateIncomeStatusByHrAdmin(
+                incomeId, 
+                request.getStatus(),
+                request.getRemarks()
+            );
+            return ResponseEntity.ok(updatedIncome);
+        } catch (ResponseStatusException e) {
+            throw e;
+        } catch (Exception e) {
+            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, e.getMessage());
+        }
+    }
+
+    @DeleteMapping(value = "/employee/{incomeId}", produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<Void> deleteIncome(@PathVariable String incomeId) {
         incomeService.deleteIncome(incomeId);
         return ResponseEntity.noContent().build();
+    }
+
+    @PutMapping(value = "/manager/updateStatus/{incomeId}", 
+                consumes = MediaType.APPLICATION_JSON_VALUE, 
+                produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<Income> updateIncomeStatusByManager(
+            @PathVariable String incomeId,
+            @Valid @RequestBody UpdateIncomeStatusRequest request,
+            Authentication authentication) {
+        try {
+            // Verify MANAGER role
+            boolean isManager = authentication.getAuthorities().stream()
+                .map(GrantedAuthority::getAuthority)
+                .anyMatch(role -> "MANAGER".equals(role));
+
+            if (!isManager) {
+                throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Only MANAGER can access this endpoint");
+            }
+
+            // Get current user's ID from security context details
+            @SuppressWarnings("unchecked")
+            Map<String, Object> details = (Map<String, Object>) authentication.getDetails();
+            String currentUserId = (String) details.get("employeeId");
+
+            Income updatedIncome = incomeService.updateIncomeStatusByManager(
+                incomeId, 
+                request.getStatus(),
+                request.getRemarks(),
+                currentUserId
+            );
+            return ResponseEntity.ok(updatedIncome);
+        } catch (ResponseStatusException e) {
+            throw e;
+        } catch (Exception e) {
+            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, e.getMessage());
+        }
     }
 } 

@@ -47,8 +47,6 @@ public class SecurityConfig {
                                 "/employee/update-request",
                                 "/payslip/generate/**",
                                 "/leads/**",
-                                "/expenses/**",
-                                "/income/**",
                                 "/api/attendance/upload"
                         ).permitAll()
 
@@ -78,9 +76,16 @@ public class SecurityConfig {
 
                         // Leave endpoints can be accessed by EMPLOYEE, MANAGER, or HRADMIN
                         .requestMatchers("/leave/employee/**").hasAnyAuthority("EMPLOYEE", "MANAGER", "HRADMIN")
+                        
+                        // Expense endpoints can be accessed by EMPLOYEE, MANAGER, or HRADMIN
+                        .requestMatchers("/expenses/employee/**").hasAuthority("EMPLOYEE")
+                        .requestMatchers("/expenses/manager/**").hasAuthority("MANAGER")
+                        .requestMatchers("/expenses/**").hasAuthority("HRADMIN")
 
-                        // Reimbursement endpoints can be accessed by EMPLOYEE, MANAGER, or HRADMIN
-                        .requestMatchers("/reimbursements/**").hasAnyAuthority("EMPLOYEE", "MANAGER", "HRADMIN")
+                        // Income endpoints can be accessed by EMPLOYEE, MANAGER, or HRADMIN
+                        .requestMatchers("/income/employee/**").hasAuthority("EMPLOYEE")
+                        .requestMatchers("/income/manager/**").hasAuthority("MANAGER")
+                        .requestMatchers("/income/**").hasAuthority("HRADMIN")
 
                         // All other routes can be accessed by HR or Super Admin
                         .anyRequest().hasAnyAuthority("HRADMIN", "SUPERADMIN")

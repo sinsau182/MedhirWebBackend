@@ -978,7 +978,7 @@ public class EmployeeService {
         }).collect(Collectors.toList());
     }
 
-    public EmployeeModel updateEmployeeRole(String employeeId, List<String> roles, String operation) {
+    public EmployeeModel updateEmployeeRole(String employeeId, List<String> roles, String operation, String companyId) {
         if (roles == null || roles.isEmpty()) {
             throw new IllegalArgumentException("Roles list cannot be null or empty");
         }
@@ -995,12 +995,52 @@ public class EmployeeService {
         // Normalize operation
         String op = operation == null ? "" : operation.trim().toUpperCase();
 
+        // Find all HR modules for the provided companyId
+        List<ModuleModel> hrModules = moduleRepository.findAll().stream()
+                .filter(m -> m.getCompanyId() != null && m.getCompanyId().equals(companyId)
+                        && m.getModuleName() != null && m.getModuleName().toUpperCase().contains("HR"))
+                .collect(Collectors.toList());
+
         switch (op) {
             case "ADD":
                 currentRoles.addAll(roles);
+                // If HRADMIN is being added, attach HR modules
+                if (roles.contains("HRADMIN")) {
+                    if (employee.getModuleIds() == null) {
+                        employee.setModuleIds(new ArrayList<>());
+                    }
+                    for (ModuleModel hrModule : hrModules) {
+                        if (!employee.getModuleIds().contains(hrModule.getModuleId())) {
+                            employee.getModuleIds().add(hrModule.getModuleId());
+                        }
+                        // Also add this employee to the module's employeeIds if not present
+                        if (hrModule.getEmployeeIds() == null) {
+                            hrModule.setEmployeeIds(new ArrayList<>());
+                        }
+                        if (!hrModule.getEmployeeIds().contains(employeeId)) {
+                            hrModule.getEmployeeIds().add(employeeId);
+                            moduleRepository.save(hrModule);
+                        }
+                    }
+                }
                 break;
             case "REMOVE":
                 currentRoles.removeAll(roles);
+                // If HRADMIN is being removed, detach HR modules
+                if (roles.contains("HRADMIN")) {
+                    if (employee.getModuleIds() != null) {
+                        for (ModuleModel hrModule : hrModules) {
+                            employee.getModuleIds().remove(hrModule.getModuleId());
+                            // Remove this employee from the module's employeeIds
+                            if (hrModule.getEmployeeIds() != null) {
+                                hrModule.getEmployeeIds().remove(employeeId);
+                                // Save the module even if employeeIds is now empty
+                                moduleRepository.save(hrModule);
+                            }
+                            // No error or exception if no admin remains
+                        }
+                    }
+                }
                 break;
             default:
                 throw new IllegalArgumentException("Invalid operation. Must be 'ADD' or 'REMOVE'");

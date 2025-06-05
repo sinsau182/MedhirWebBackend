@@ -9,6 +9,9 @@ import com.medhir.rest.dto.UpdateEmployeeRoles;
 import com.medhir.rest.dto.UserCompanyDTO;
 import com.medhir.rest.employee.dto.EmployeeAttendanceDetailsDTO;
 import com.medhir.rest.employee.dto.EmployeeWithLeaveDetailsDTO;
+import com.medhir.rest.exception.ResourceNotFoundException;
+import com.medhir.rest.model.ModuleModel;
+import com.medhir.rest.repository.ModuleRepository;
 import com.medhir.rest.service.UserService;
 import com.medhir.rest.utils.GeneratedId;
 import jakarta.validation.ConstraintViolation;
@@ -24,6 +27,8 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.HashMap;
+import java.util.HashSet;
+import java.util.ArrayList;
 
 @RestController
 @RequestMapping("/")
@@ -37,6 +42,9 @@ public class EmployeeController {
 
     @Autowired
     private GeneratedId generatedId;
+
+    @Autowired
+    private ModuleRepository moduleRepository;
 
     // Generate Employee ID
     @GetMapping("/hradmin/generate-employee-id/{companyId}")
@@ -197,7 +205,8 @@ public class EmployeeController {
         EmployeeModel updatedEmployee = employeeService.updateEmployeeRole(
                 employeeId,
                 request.getRoles(),
-                request.getOperation()
+                request.getOperation(),
+                request.getCompanyId()
         );
 
         return ResponseEntity.ok(Map.of(
@@ -208,6 +217,42 @@ public class EmployeeController {
     @GetMapping("/employee/{employeeId}/attendance-details")
     public ResponseEntity<EmployeeAttendanceDetailsDTO> getEmployeeAttendanceDetails(@PathVariable String employeeId) {
         return ResponseEntity.ok(employeeService.getEmployeeAttendanceDetails(employeeId));
+    }
+
+    @GetMapping("/hradmin/employees/{employeeId}/roles")
+    public ResponseEntity<Map<String, Object>> getEmployeeRolesWithModules(@PathVariable String employeeId) {
+        EmployeeModel employee = employeeService.getEmployeeById(employeeId)
+                .orElseThrow(() -> new ResourceNotFoundException("Employee not found with ID: " + employeeId));
+
+        // Get employee's roles
+        Set<String> roles = employee.getRoles();
+        if (roles == null) {
+            roles = new HashSet<>();
+        }
+
+        // Get employee's modules
+        List<String> moduleIds = employee.getModuleIds();
+        List<Map<String, String>> moduleDetails = new ArrayList<>();
+        
+        if (moduleIds != null) {
+            for (String moduleId : moduleIds) {
+                moduleRepository.findByModuleId(moduleId).ifPresent(module -> {
+                    Map<String, String> moduleInfo = new HashMap<>();
+                    moduleInfo.put("moduleId", module.getModuleId());
+                    moduleInfo.put("moduleName", module.getModuleName());
+                    moduleInfo.put("description", module.getDescription());
+                    moduleDetails.add(moduleInfo);
+                });
+            }
+        }
+
+        Map<String, Object> response = new HashMap<>();
+        response.put("employeeId", employeeId);
+        response.put("employeeName", employee.getName());
+        response.put("roles", roles);
+        response.put("modules", moduleDetails);
+
+        return ResponseEntity.ok(response);
     }
 
 }

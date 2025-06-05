@@ -44,20 +44,25 @@ public class Income {
     @JsonProperty(required = true)
     private String status;
     
-    // @JsonProperty(required = false)
-    // private String category = "";
-    
     @NotBlank(message = "File is required")
     @JsonProperty(required = true)
     private String file = "";
     
     @JsonProperty(required = false)
     private String comments = "";
-    
+
+    @JsonProperty(required = false)
+    private String statusRemarks = "";
+
     @NotBlank(message = "Submitted by (employeeId) is required")
     @JsonProperty(required = true)
     @Indexed
     private String submittedBy = "";
+
+    @NotBlank(message = "Company ID is required")
+    @JsonProperty(required = true)
+    @Indexed
+    private String companyId = "";
 
     @JsonIgnore
     @Transient
@@ -68,6 +73,7 @@ public class Income {
         if (comments == null) comments = "";
         if (file == null) file = "";
         if (submittedBy == null) submittedBy = "";
+        if (statusRemarks == null) statusRemarks = "";
     }
 
     public void setGeneratedId(GeneratedId generatedId) {
